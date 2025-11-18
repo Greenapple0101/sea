@@ -157,6 +157,16 @@ pipeline {
                                 \${SSH_USER}@${EC2_HOST}:${DEPLOY_DIR}/
                         """
                         
+                        // MySQL 초기화 스크립트 전송
+                        sh """
+                            ssh -i \${SSH_KEY} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \${SSH_USER}@${EC2_HOST} '
+                                mkdir -p ${DEPLOY_DIR}/mysql
+                            '
+                            scp -i \${SSH_KEY} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+                                mysql/init.sql \
+                                \${SSH_USER}@${EC2_HOST}:${DEPLOY_DIR}/mysql/
+                        """
+                        
                         // EC2에서 Docker 이미지 로드 및 배포 스크립트 실행
                         sh """
                             ssh -i \${SSH_KEY} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \${SSH_USER}@${EC2_HOST} '

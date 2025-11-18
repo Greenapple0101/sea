@@ -1,6 +1,28 @@
 version: '3.8'
 
 services:
+  mysql:
+    image: mysql:8.0
+    container_name: sca-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: sca_db
+      MYSQL_USER: sca_user
+      MYSQL_PASSWORD: scaStrong#2025!
+    volumes:
+      - ./mysql/db_data:/var/lib/mysql
+      - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "3306:3306"
+    restart: always
+    networks:
+      - sca-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   backend:
     image: sca-be:latest
     container_name: sca-be
@@ -11,6 +33,9 @@ services:
     restart: unless-stopped
     networks:
       - sca-network
+    depends_on:
+      mysql:
+        condition: service_healthy
 
   frontend:
     image: sca-fe:latest
