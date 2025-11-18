@@ -11,7 +11,7 @@ pipeline {
     }
     
     environment {
-        // 애플리케이션 정보 (로컬 폴더 구조: back, front)
+        // 애플리케이션 디렉토리 (GitHub repo 구조: back, front)
         BACKEND_DIR = 'back'
         FRONTEND_DIR = 'front'
         DEPLOY_DIR = '/home/ubuntu/sca'
