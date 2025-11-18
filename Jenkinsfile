@@ -11,9 +11,9 @@ pipeline {
     }
     
     environment {
-        // 애플리케이션 정보 (GitHub repo 실제 구조: 백, 프론트)
-        BACKEND_DIR = '백'
-        FRONTEND_DIR = '프론트'
+        // 애플리케이션 정보 (로컬 폴더 구조: back, front)
+        BACKEND_DIR = 'back'
+        FRONTEND_DIR = 'front'
         DEPLOY_DIR = '/home/ubuntu/sca'
         
         // EC2 서버 정보
