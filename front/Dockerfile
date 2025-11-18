@@ -1,5 +1,5 @@
-# 1단계: 빌드
-FROM node:18-alpine AS builder
+# 1단계: 빌드 (Node 20 - react-router-dom 7.x 요구사항)
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
