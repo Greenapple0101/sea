@@ -1,0 +1,67 @@
+# 백엔드 빌드 파일
+백/build/
+백/.gradle/
+백/gradle/wrapper/gradle-wrapper.jar
+백/*.log
+백/data/
+백/logs/
+백/*.jar
+백/out/
+
+# 프론트엔드 빌드 파일
+최종디자인/node_modules/
+최종디자인/build/
+최종디자인/dist/
+최종디자인/.vite/
+최종디자인/.vite-cache/
+
+# 환경 변수 파일
+.env
+.env.local
+.env.production
+.env.development
+*.env
+
+# IDE 설정
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.settings/
+.classpath
+.project
+
+# OS 파일
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*~
+
+# 로그 파일
+*.log
+logs/
+*.log.*
+
+# 임시 파일
+*.tmp
+*.temp
+*.swp
+*.swo
+*.bak
+*.cache
+
+# 배포 관련 (선택사항 - 보안상 민감한 파일)
+*.pem
+*.key
+*.crt
+deploy.sh.bak
+
+# 기타
+*.hprof
+*.pid
+

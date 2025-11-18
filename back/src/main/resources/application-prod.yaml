@@ -1,0 +1,24 @@
+#SPRING_PROFILES_ACTIVE=prod 컨테이너 밖에서 주입 필요
+spring:
+  datasource:
+    # 환경 변수에서 주입 필요.
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      # 'validate': 애플리케이션 시작 시 엔티티와 DB 테이블 스키마가 일치하는지 검증만 함.
+      # (주의: 'create', 'create-drop', 'update'는 운영 환경에서 절대 사용하지 말 것.)
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+    show-sql: false
+
+  jwt:
+    #환경 변수에서 주입 필요
+    secret: ${JWT_SECRET}
+    expiration: ${JWT_EXPIRATION}
+    refresh-expiration: ${JWT_REFRESH_EXPIRATION}

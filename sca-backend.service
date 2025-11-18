@@ -1,0 +1,21 @@
+[Unit]
+Description=SCA Backend Service
+After=network.target mysql.service
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/sca/backend
+EnvironmentFile=/home/ubuntu/sca/.env
+ExecStart=/usr/bin/java -jar \
+    -Dspring.profiles.active=prod \
+    -Dserver.port=8080 \
+    /home/ubuntu/sca/backend/sca-be.jar
+Restart=always
+RestartSec=10
+StandardOutput=append:/home/ubuntu/sca/backend/logs/application.log
+StandardError=append:/home/ubuntu/sca/backend/logs/application.log
+
+[Install]
+WantedBy=multi-user.target
+

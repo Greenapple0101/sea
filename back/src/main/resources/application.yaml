@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: sca-be
+  server:
+    port: 8080
+
+  profiles:
+    default: dev
+
+  management:
+    endpoints:
+      web:
+        exposure:
+          include: health
+    endpoint:
+      health:
+        show-details: always
