@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  backend:
+    image: sca-be:latest
+    container_name: sca-be
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    restart: unless-stopped
+    networks:
+      - sca-network
+
+  frontend:
+    image: sca-fe:latest
+    container_name: sca-fe
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    networks:
+      - sca-network
+    depends_on:
+      - backend
+
+networks:
+  sca-network:
+    driver: bridge
+

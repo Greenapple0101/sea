@@ -147,10 +147,13 @@ pipeline {
                                 \${SSH_USER}@${EC2_HOST}:${DEPLOY_DIR}/
                         """
                         
-                        // 배포 스크립트 전송
+                        // 배포 스크립트 및 docker-compose.yml 전송
                         sh """
                             scp -i \${SSH_KEY} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
                                 deploy.sh \
+                                \${SSH_USER}@${EC2_HOST}:${DEPLOY_DIR}/
+                            scp -i \${SSH_KEY} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+                                docker-compose.yml \
                                 \${SSH_USER}@${EC2_HOST}:${DEPLOY_DIR}/
                         """
                         
