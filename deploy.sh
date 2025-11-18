@@ -26,7 +26,7 @@ if ! command -v docker &> /dev/null; then
     sudo usermod -aG docker ubuntu || true
 fi
 
-# Docker Compose 확인 (최신 Docker에는 기본 포함)
+#  Compose 확인 (최신 Docker에는 기본 포함)
 if ! docker compose version &> /dev/null; then
     echo "⚠️  docker compose 명령어를 사용할 수 없습니다."
     echo "⚠️  Docker Compose V2가 설치되어 있는지 확인하세요."
