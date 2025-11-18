@@ -88,6 +88,38 @@ pipeline {
             }
         }
         
+        stage('Docker Build') {
+            steps {
+                script {
+                    echo '🐳 Docker 이미지 빌드 시작...'
+                    
+                    // 백엔드 Docker 이미지 빌드
+                    dir("${BACKEND_DIR}") {
+                        sh '''
+                            echo "🔨 백엔드 Docker 이미지 빌드 중..."
+                            docker build -t sca-be:latest .
+                        '''
+                    }
+                    
+                    // 프론트엔드 Docker 이미지 빌드
+                    dir("${FRONTEND_DIR}") {
+                        sh '''
+                            echo "🔨 프론트엔드 Docker 이미지 빌드 중..."
+                            docker build -t sca-fe:latest .
+                        '''
+                    }
+                    
+                    // Docker 이미지를 tar 파일로 저장
+                    sh '''
+                        echo "💾 Docker 이미지를 tar 파일로 저장 중..."
+                        docker save sca-be:latest -o sca-be.tar
+                        docker save sca-fe:latest -o sca-fe.tar
+                        ls -lh *.tar
+                    '''
+                }
+            }
+        }
+        
         stage('Deploy to EC2') {
             steps {
                 script {
@@ -100,50 +132,40 @@ pipeline {
                         // EC2에 디렉토리 생성
                         sh """
                             ssh -i \${SSH_KEY} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \${SSH_USER}@${EC2_HOST} '
-                                mkdir -p ${DEPLOY_DIR}/{backend,frontend}
-                                mkdir -p ${DEPLOY_DIR}/backend/logs
+                                mkdir -p ${DEPLOY_DIR}
                             '
                         """
                         
-                        // 백엔드 JAR 파일 전송 (plain jar 제외, 실행 가능한 jar만)
+                        // Docker 이미지 tar 파일 전송
                         sh """
-                            JAR_FILE=\$(find ${BACKEND_DIR}/build/libs -name "*-SNAPSHOT.jar" ! -name "*-plain.jar" | head -1)
-                            if [ -z "\$JAR_FILE" ]; then
-                                echo "❌ JAR 파일을 찾을 수 없습니다."
-                                exit 1
-                            fi
+                            echo "📦 Docker 이미지 전송 중..."
                             scp -i \${SSH_KEY} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-                                \$JAR_FILE \
-                                \${SSH_USER}@${EC2_HOST}:${DEPLOY_DIR}/backend/sca-be.jar
+                                sca-be.tar \
+                                \${SSH_USER}@${EC2_HOST}:${DEPLOY_DIR}/
+                            scp -i \${SSH_KEY} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+                                sca-fe.tar \
+                                \${SSH_USER}@${EC2_HOST}:${DEPLOY_DIR}/
                         """
                         
-                        // 프론트엔드 빌드 파일 전송
-                        sh """
-                            rsync -avz -e "ssh -i \${SSH_KEY} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" \
-                                --delete \
-                                ${FRONTEND_DIR}/build/ \
-                                \${SSH_USER}@${EC2_HOST}:${DEPLOY_DIR}/frontend/
-                        """
-                        
-                        // 배포 스크립트 및 설정 파일 전송 (.env는 이미 서버에 있으므로 전송하지 않음)
+                        // 배포 스크립트 전송
                         sh """
                             scp -i \${SSH_KEY} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
                                 deploy.sh \
                                 \${SSH_USER}@${EC2_HOST}:${DEPLOY_DIR}/
-                            scp -i \${SSH_KEY} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-                                sca-backend.service \
-                                \${SSH_USER}@${EC2_HOST}:${DEPLOY_DIR}/
-                            scp -i \${SSH_KEY} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-                                nginx-sca.conf \
-                                \${SSH_USER}@${EC2_HOST}:${DEPLOY_DIR}/
                         """
                         
-                        // EC2에서 배포 스크립트 실행
+                        // EC2에서 Docker 이미지 로드 및 배포 스크립트 실행
                         sh """
                             ssh -i \${SSH_KEY} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \${SSH_USER}@${EC2_HOST} '
                                 cd ${DEPLOY_DIR}
+                                echo "🐳 Docker 이미지 로드 중..."
+                                docker load -i sca-be.tar || true
+                                docker load -i sca-fe.tar || true
+                                echo "🚀 배포 스크립트 실행 중..."
                                 chmod +x deploy.sh
                                 sudo ./deploy.sh
+                                echo "🧹 임시 파일 정리 중..."
+                                rm -f sca-be.tar sca-fe.tar || true
                             '
                         """
                     }
