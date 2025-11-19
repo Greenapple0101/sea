@@ -206,10 +206,10 @@ pipeline {
                         fi
                     """
                     
-                    // 프론트엔드 헬스 체크
+                    // 프론트엔드 헬스 체크 (Nginx는 80 포트로 서비스)
                     sh """
                         echo "프론트엔드 헬스 체크 중..."
-                        curl -f http://${EC2_HOST}:${FRONTEND_PORT} || echo "프론트엔드 헬스 체크 실패 (무시하고 계속)"
+                        curl -f http://${EC2_HOST}:80 || echo "프론트엔드 헬스 체크 실패 (무시하고 계속)"
                     """
                     
                     echo '✅ 배포 완료!'
