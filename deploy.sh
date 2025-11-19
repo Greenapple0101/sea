@@ -34,14 +34,18 @@ if ! docker compose version &> /dev/null; then
 fi
 
 # 환경 변수 파일 확인 및 권한 설정
+# .env 파일은 EC2에서 직접 관리하므로 존재 여부만 확인하고 권한 설정
 if [ ! -f "${DEPLOY_DIR}/.env" ]; then
-    echo "⚠️  환경 변수 파일이 없습니다: ${DEPLOY_DIR}/.env"
-    echo "⚠️  기본 설정으로 계속 진행합니다..."
+    echo "❌ 환경 변수 파일이 없습니다: ${DEPLOY_DIR}/.env"
+    echo "⚠️  EC2 서버의 ${DEPLOY_DIR}/.env 파일을 생성해주세요."
+    echo "⚠️  필수 항목: DB_URL, DB_USERNAME, DB_PASSWORD, JWT_SECRET, JWT_EXPIRATION, JWT_REFRESH_EXPIRATION, SPRING_PROFILES_ACTIVE"
+    exit 1
 else
     # .env 파일 소유권을 ubuntu로 변경 (root 소유일 경우 수정 불가 문제 해결)
     echo "🔧 .env 파일 권한 설정 중..."
     sudo chown ubuntu:ubuntu "${DEPLOY_DIR}/.env" || true
     sudo chmod 664 "${DEPLOY_DIR}/.env" || true
+    echo "✅ .env 파일 확인 완료 (EC2에서 관리)"
 fi
 
 # docker-compose.yml 파일 확인
