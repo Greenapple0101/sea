@@ -38,6 +38,8 @@ pnpm-debug.log*
 .env
 .env.*
 !.env.example # .env.example 파일은 제외 (커밋 허용)
+!.env.development # 개발 환경 변수는 커밋 허용
+!.env.production # 프로덕션 환경 변수는 커밋 허용
 
 # ----------------------------------------------------------------
 # IDE 및 편집기 설정 (Editor/IDE configs)
