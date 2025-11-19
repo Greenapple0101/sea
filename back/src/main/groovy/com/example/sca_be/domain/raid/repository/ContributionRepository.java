@@ -30,3 +30,4 @@ public interface ContributionRepository extends JpaRepository<Contribution, Inte
     List<Contribution> findByClassId(@Param("classId") Integer classId);
 }
 
+//테스트
