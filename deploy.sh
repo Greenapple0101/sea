@@ -33,10 +33,15 @@ if ! docker compose version &> /dev/null; then
     exit 1
 fi
 
-# 환경 변수 파일 확인
+# 환경 변수 파일 확인 및 권한 설정
 if [ ! -f "${DEPLOY_DIR}/.env" ]; then
     echo "⚠️  환경 변수 파일이 없습니다: ${DEPLOY_DIR}/.env"
     echo "⚠️  기본 설정으로 계속 진행합니다..."
+else
+    # .env 파일 소유권을 ubuntu로 변경 (root 소유일 경우 수정 불가 문제 해결)
+    echo "🔧 .env 파일 권한 설정 중..."
+    sudo chown ubuntu:ubuntu "${DEPLOY_DIR}/.env" || true
+    sudo chmod 664 "${DEPLOY_DIR}/.env" || true
 fi
 
 # docker-compose.yml 파일 확인

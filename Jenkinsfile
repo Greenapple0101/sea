@@ -157,6 +157,27 @@ pipeline {
                                 \${SSH_USER}@${EC2_HOST}:${DEPLOY_DIR}/
                         """
                         
+                        // .env 파일 생성 및 전송 (EC2_HOST 자동 치환)
+                        sh """
+                            cat > .env << EOF
+# Database Configuration
+DB_URL=jdbc:mysql://host.docker.internal:3306/sca_db
+DB_USERNAME=sca_user
+DB_PASSWORD=scaStrong#2025!
+
+# JWT Configuration
+JWT_SECRET=your-jwt-secret-key-must-be-at-least-256-bits-long-for-HS256-algorithm-security
+JWT_EXPIRATION=900000
+JWT_REFRESH_EXPIRATION=604800000
+
+# Spring Profile
+SPRING_PROFILES_ACTIVE=prod
+EOF
+                            scp -i \${SSH_KEY} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+                                .env \
+                                \${SSH_USER}@${EC2_HOST}:${DEPLOY_DIR}/
+                        """
+                        
                         // MySQL 초기화 스크립트 전송
                         sh """
                             ssh -i \${SSH_KEY} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \${SSH_USER}@${EC2_HOST} '
