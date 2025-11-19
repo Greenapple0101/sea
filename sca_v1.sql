@@ -105,7 +105,7 @@ CREATE TABLE group_quests (
   reward_research_data INT DEFAULT 0, -- 탐사데이터 보상
   end_date DATETIME, -- 퀘스트 마감일
   status ENUM('ACTIVE', 'COMPLETED', 'FAILED'), -- 상태
-  content TEXT, -- 내용
+  content TINYTEXT, -- 내용 (백엔드 @Lob 어노테이션과 일치)
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP, -- 생성일
   type ENUM('ATTENDANCE', 'ASSIGNMENT', 'PARTICIPATION', 'EXAM', 'OTHER'),
   PRIMARY KEY (group_quest_id)
