@@ -61,7 +61,7 @@ CREATE TABLE quests (
   quest_id INT NOT NULL AUTO_INCREMENT, -- Primary Key
   teacher_id INT, -- 교사 id
   title VARCHAR(255) NOT NULL, -- 제목
-  teacher_content TEXT, -- 내용
+  teacher_content TINYTEXT, -- 내용 (백엔드 @Lob 어노테이션과 일치)
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP, -- 생성일
   reward_coral_default INT DEFAULT 0, -- 코랄 보상
   reward_research_data_default INT DEFAULT 0, -- 탐사데이터 보상
@@ -88,9 +88,9 @@ CREATE TABLE submissions (
   submission_id INT NOT NULL AUTO_INCREMENT, -- Primary Key
   assignment_id INT, -- 퀘스트 할당 id
   attachment_url VARCHAR(255), -- 첨부파일 경로
-  student_content TEXT, -- 학생 제출 내용
+  student_content TINYTEXT, -- 학생 제출 내용 (백엔드 @Lob 어노테이션과 일치)
   submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP, -- 제출시각
-  comment TEXT, -- 선생님 코멘트
+  comment TINYTEXT, -- 선생님 코멘트 (백엔드 @Lob 어노테이션과 일치)
   PRIMARY KEY (submission_id)
 );
 
@@ -135,7 +135,7 @@ CREATE TABLE raids (
   total_boss_hp BIGINT, -- 총 보스 HP
   current_boss_hp BIGINT, -- 현재 보스 HP
   reward_coral INT DEFAULT 0, -- 코랄 보상
-  special_reward_description TEXT, -- 보상 정보
+  special_reward_description TINYTEXT, -- 보상 정보 (백엔드 @Lob 어노테이션과 일치)
   status VARCHAR(20), -- 진행상황 (ENUM: ACTIVE, COMPLETED, EXPIRED, TERMINATED)
   difficulty ENUM('LOW', 'MEDIUM', 'HIGH'), -- 난이도
   boss_type ENUM('ZELUS_INDUSTRY', 'KRAKEN'),
