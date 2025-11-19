@@ -5,7 +5,7 @@ services:
     image: sca-be:latest
     container_name: sca-be
     ports:
-      - "8080:8080"
+      - "8081:8080"  # 외부 8081 → 컨테이너 내부 8080 (Jenkins 8080과 충돌 방지)
     env_file:
       - .env
     restart: unless-stopped
