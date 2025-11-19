@@ -81,8 +81,6 @@ public class SecurityConfig {
                                 "/api/v1/quests/personal/{assignmentId}/detail",   // 개인 퀘스트 상세(제출 내용 포함)
                                 "/api/v1/quests/personal/{assignmentId}/approve",  // 개인 퀘스트 승인
                                 "/api/v1/quests/personal/{assignmentId}/reject",   // 개인 퀘스트 반려
-                                "/api/v1/gacha/**",
-                                "/api/v1/collection/**",
                                 "/api/quests/group/**",                            // 단체 퀘스트 전체 (생성, 조회, 완료, 학생 체크)
                                 "/api/v1/raids/creation-info",                     // 레이드 템플릿 조회
                                 "/api/v1/raids",                                   // 레이드 생성 (POST)
