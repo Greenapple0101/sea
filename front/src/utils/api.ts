@@ -5,8 +5,8 @@
  * - refresh token 실패 시 자동 로그아웃
  */
 
-// 환경변수에서 API Base URL 가져오기
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+// 환경변수에서 API URL 가져오기
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 // URL을 완전한 경로로 변환하는 헬퍼 함수
 function getFullUrl(url: string): string {
@@ -15,14 +15,13 @@ function getFullUrl(url: string): string {
     return url;
   }
   
-  // 개발 환경에서는 Vite 프록시를 사용 (상대 경로 유지)
-  // 프로덕션에서는 환경변수의 baseURL 사용
-  if (import.meta.env.DEV) {
-    // 개발 환경: Vite 프록시 사용 (상대 경로)
-    return url;
-  } else {
-    // 프로덕션 환경: 환경변수의 baseURL 사용
+  // 환경변수가 설정되어 있으면 환경변수 사용, 없으면 상대 경로 유지
+  if (API_BASE_URL) {
+    // 환경변수 사용: baseURL + 상대 경로
     return `${API_BASE_URL}${url}`;
+  } else {
+    // 환경변수가 없으면 상대 경로 그대로 사용 (Vite 프록시 또는 현재 도메인 기준)
+    return url;
   }
 }
 
