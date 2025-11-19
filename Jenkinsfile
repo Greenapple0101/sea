@@ -22,7 +22,7 @@ pipeline {
         SSH_CREDENTIAL_ID = 'ubuntu'
         
         // 포트 정보
-        BACKEND_PORT = '8081'  # Jenkins(8080)와 충돌 방지
+        BACKEND_PORT = '8081'  // Jenkins(8080) 포트 충돌 방지
         FRONTEND_PORT = '3000'
         
         // Java 버전
