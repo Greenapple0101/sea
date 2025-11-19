@@ -1,18 +1,35 @@
 version: '3.8'
 
 services:
+  mysql:
+    image: mysql:8.0
+    container_name: sca-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root1234
+      MYSQL_DATABASE: sca_db
+      MYSQL_USER: sca_user
+      MYSQL_PASSWORD: scaStrong#2025!
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - sca-network
+    restart: always
+
   backend:
     image: sca-be:latest
     container_name: sca-be
     ports:
-      - "8081:8080"  # 외부 8081 → 컨테이너 내부 8080 (Jenkins 8080과 충돌 방지)
+      - "8081:8080"  # Jenkins 충돌 방지
     env_file:
       - .env
     restart: unless-stopped
     networks:
       - sca-network
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+    depends_on:
+      - mysql
 
   frontend:
     image: sca-fe:latest
@@ -29,3 +46,5 @@ networks:
   sca-network:
     driver: bridge
 
+volumes:
+  mysql-data:
