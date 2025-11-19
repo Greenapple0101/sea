@@ -5,6 +5,27 @@
  * - refresh token 실패 시 자동 로그아웃
  */
 
+// 환경변수에서 API Base URL 가져오기
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+
+// URL을 완전한 경로로 변환하는 헬퍼 함수
+function getFullUrl(url: string): string {
+  // 이미 전체 URL인 경우 그대로 반환
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+  
+  // 개발 환경에서는 Vite 프록시를 사용 (상대 경로 유지)
+  // 프로덕션에서는 환경변수의 baseURL 사용
+  if (import.meta.env.DEV) {
+    // 개발 환경: Vite 프록시 사용 (상대 경로)
+    return url;
+  } else {
+    // 프로덕션 환경: 환경변수의 baseURL 사용
+    return `${API_BASE_URL}${url}`;
+  }
+}
+
 let isRefreshing = false;
 let failedQueue: Array<{
   resolve: (value?: unknown) => void;
@@ -36,7 +57,8 @@ async function refreshAccessToken(): Promise<string> {
     throw new Error('No refresh token available');
   }
 
-  const response = await fetch('/api/v1/auth/refresh', {
+  const refreshUrl = getFullUrl('/api/v1/auth/refresh');
+  const response = await fetch(refreshUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -88,7 +110,8 @@ export async function apiCall(url: string, options: ApiCallOptions = {}): Promis
   }
 
   // 첫 번째 시도
-  let response = await fetch(url, {
+  const fullUrl = getFullUrl(url);
+  let response = await fetch(fullUrl, {
     ...restOptions,
     headers: defaultHeaders,
   });
@@ -109,7 +132,7 @@ export async function apiCall(url: string, options: ApiCallOptions = {}): Promis
 
       // 새 토큰으로 원래 요청 재시도
       (defaultHeaders as Record<string, string>).Authorization = `Bearer ${newAccessToken}`;
-      response = await fetch(url, {
+      response = await fetch(fullUrl, {
         ...restOptions,
         headers: defaultHeaders,
       });
@@ -138,7 +161,8 @@ export async function apiCall(url: string, options: ApiCallOptions = {}): Promis
       // 토큰 갱신이 완료되면 원래 요청 재시도
       const accessToken = localStorage.getItem('accessToken');
       (defaultHeaders as Record<string, string>).Authorization = `Bearer ${accessToken}`;
-      return fetch(url, {
+      const retryUrl = getFullUrl(url);
+      return fetch(retryUrl, {
         ...restOptions,
         headers: defaultHeaders,
       });
