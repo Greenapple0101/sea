@@ -97,7 +97,8 @@ public class SecurityConfig {
                                 "/api/v1/gacha/**",                                // 가챠 정보, 뽑기
                                 "/api/v1/collection/**",                           // 수족관, 도감
                                 "/api/v1/raids/my-raid",                          // 내 레이드 조회
-                                "/api/v1/raids/{raidId}/attack"                    // 레이드 공격
+                                "/api/v1/raids/{raidId}/attack",                   // 레이드 공격
+                                "/api/v1/raids/{raidId}/logs"                      // 레이드 로그 조회
                         ).hasRole("STUDENT")
 
                         // 그 외 모든 요청은 인증 필요
