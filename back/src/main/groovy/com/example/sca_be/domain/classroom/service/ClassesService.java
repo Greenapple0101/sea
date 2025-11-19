@@ -319,8 +319,7 @@ public class ClassesService {
         double approvalRate = submissions > 0 ? (approvals * 100.0 / submissions) : 0.0;
 
         // 레이드 공격 데이터 (이번 주) - Contribution 테이블 기반
-        List<Contribution> weekContributions = contributionRepository.findByClassAndDateRange(
-                classId, weekStart, weekEnd);
+        List<Contribution> weekContributions = contributionRepository.findByClassId(classId);
 
         // 공격 횟수는 Contribution의 개수로 계산
         int raidAttacks = weekContributions.size();
