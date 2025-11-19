@@ -35,7 +35,7 @@ services:
     image: sca-fe:latest
     container_name: sca-fe
     ports:
-      - "3000:80"
+      - "80:80"
     restart: unless-stopped
     networks:
       - sca-network
