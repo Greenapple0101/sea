@@ -135,7 +135,6 @@ CREATE TABLE raids (
   total_boss_hp BIGINT, -- 총 보스 HP
   current_boss_hp BIGINT, -- 현재 보스 HP
   reward_coral INT DEFAULT 0, -- 코랄 보상
-  reward_research_data INT DEFAULT 0, -- 탐사데이터 보상 (추가)
   special_reward_description TEXT, -- 보상 정보
   status VARCHAR(20), -- 진행상황 (ENUM: ACTIVE, COMPLETED, EXPIRED, TERMINATED)
   difficulty ENUM('LOW', 'MEDIUM', 'HIGH'), -- 난이도
