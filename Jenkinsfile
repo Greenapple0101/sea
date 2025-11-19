@@ -196,7 +196,7 @@ pipeline {
                     // 백엔드 헬스 체크 (DB 연결 포함)
                     sh """
                         echo "백엔드 헬스 체크 중..."
-                        HEALTH_RESPONSE=\$(curl -s http://${EC2_HOST}:${BACKEND_PORT}/actuator/health || echo "")
+                        HEALTH_RESPONSE=\$(curl -s http://${EC2_HOST}:8080/actuator/health || echo "")
                         if [ -z "\$HEALTH_RESPONSE" ]; then
                             echo "⚠️  백엔드 헬스 체크 실패 - MySQL 연결 문제일 수 있습니다"
                             echo "EC2 서버에서 로그 확인: sudo journalctl -u sca-backend -n 50"
