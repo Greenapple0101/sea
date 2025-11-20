@@ -7,19 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Textarea } from '../ui/textarea';
 import { Input } from '../ui/input';
 import { useAuth, StudentUser } from "../../contexts/AppContext";
-import { get, post } from "../../utils/api";
-
-// API URL 헬퍼 함수 가져오기
-function getFullUrl(url: string): string {
-  const API_BASE_URL = import.meta.env.VITE_API_URL || '';
-  if (url.startsWith('http://') || url.startsWith('https://')) {
-    return url;
-  }
-  if (API_BASE_URL) {
-    return `${API_BASE_URL}${url}`;
-  }
-  return url;
-}
+import { get, post, getFullUrl } from "../../utils/api";
 import { Loader2, File as FileIcon, X } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 

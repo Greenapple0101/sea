@@ -43,22 +43,30 @@ pipeline {
                     echo '🔨 백엔드 빌드 시작...'
                     echo "현재 작업 디렉토리: ${pwd()}"
                     echo "백엔드 디렉토리: ${BACKEND_DIR}"
-                    sh """
-                        echo "📁 디렉토리 구조 확인..."
-                        ls -la
-                        echo "📁 ${BACKEND_DIR} 디렉토리 확인..."
-                        ls -la ${BACKEND_DIR} || echo "디렉토리가 없습니다!"
-                    """
-                    dir("${BACKEND_DIR}") {
-                        sh '''
-                            echo "📁 현재 위치: $(pwd)"
-                            echo "📁 파일 목록:"
+                    
+                    // AWS 크레덴셜 주입
+                    withCredentials([
+                        string(credentialsId: 'AWS_ACCESS_KEY', variable: 'AWS_ACCESS_KEY'),
+                        string(credentialsId: 'AWS_SECRET_KEY', variable: 'AWS_SECRET_KEY'),
+                        string(credentialsId: 'AWS_S3_BUCKET', variable: 'AWS_S3_BUCKET')
+                    ]) {
+                        sh """
+                            echo "📁 디렉토리 구조 확인..."
                             ls -la
-                            echo "🔧 gradlew 권한 설정..."
-                            chmod +x gradlew
-                            echo "🔨 Gradle 빌드 시작..."
-                            ./gradlew clean build -x test
-                        '''
+                            echo "📁 ${BACKEND_DIR} 디렉토리 확인..."
+                            ls -la ${BACKEND_DIR} || echo "디렉토리가 없습니다!"
+                        """
+                        dir("${BACKEND_DIR}") {
+                            sh '''
+                                echo "📁 현재 위치: $(pwd)"
+                                echo "📁 파일 목록:"
+                                ls -la
+                                echo "🔧 gradlew 권한 설정..."
+                                chmod +x gradlew
+                                echo "🔨 Gradle 빌드 시작..."
+                                ./gradlew clean build -x test
+                            '''
+                        }
                     }
                 }
             }

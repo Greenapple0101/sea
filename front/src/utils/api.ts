@@ -18,7 +18,7 @@ if (import.meta.env.DEV) {
 }
 
 // URL을 완전한 경로로 변환하는 헬퍼 함수
-function getFullUrl(url: string): string {
+export function getFullUrl(url: string): string {
   // 이미 전체 URL인 경우 그대로 반환
   if (url.startsWith('http://') || url.startsWith('https://')) {
     return url;
