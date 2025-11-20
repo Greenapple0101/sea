@@ -271,15 +271,15 @@ export function StudentRaid() {
     : 0;
 
   return (
-    <div className="p-4 space-y-4 bg-white">
+    <div className="p-4 space-y-4 bg-white" style={{ writingMode: 'horizontal-tb' }}>
       <Card className="border-2 border-gray-300">
-        <CardHeader className="text-center pb-4">
-          <CardTitle className="text-black text-xl mb-3">{raidData.raid_name}</CardTitle>
-          <div className="flex justify-between items-center text-sm mb-2">
-            <span className="text-gray-600">남은 시간</span>
+        <CardHeader className="text-center pb-4" style={{ writingMode: 'horizontal-tb' }}>
+          <CardTitle className="text-black text-xl mb-3 whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>{raidData.raid_name}</CardTitle>
+          <div className="flex justify-between items-center text-sm mb-2" style={{ writingMode: 'horizontal-tb' }}>
+            <span className="text-gray-600 whitespace-nowrap">남은 시간</span>
             <span className="text-black font-medium whitespace-nowrap">{formatRemainingTime}</span>
           </div>
-          <div className="text-xs text-gray-500 mt-2">
+          <div className="text-xs text-gray-500 mt-2 whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>
             상태: {raidData.status === 'ACTIVE' ? '진행중' : '종료됨'}
           </div>
         </CardHeader>
@@ -294,10 +294,10 @@ export function StudentRaid() {
             </div>
           </div>
 
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-black font-medium">보스 HP</span>
-              <span className="text-black">
+          <div className="space-y-2" style={{ writingMode: 'horizontal-tb' }}>
+            <div className="flex justify-between text-sm" style={{ writingMode: 'horizontal-tb' }}>
+              <span className="text-black font-medium whitespace-nowrap">보스 HP</span>
+              <span className="text-black whitespace-nowrap">
                 {(raidData.current_boss_hp ?? 0).toLocaleString()} / {(raidData.total_boss_hp ?? 0).toLocaleString()}
               </span>
             </div>
@@ -314,17 +314,17 @@ export function StudentRaid() {
       </Card>
 
       <Card className="border-2 border-gray-300">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-black text-center">개인 기여</CardTitle>
+        <CardHeader className="pb-4" style={{ writingMode: 'horizontal-tb' }}>
+          <CardTitle className="text-black text-center whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>개인 기여</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="text-center p-3 border border-gray-200 rounded">
-              <p className="text-sm text-gray-600 mb-2">보유 탐사데이터</p>
+          <div className="grid grid-cols-2 gap-4" style={{ writingMode: 'horizontal-tb' }}>
+            <div className="text-center p-3 border border-gray-200 rounded" style={{ writingMode: 'horizontal-tb' }}>
+              <p className="text-sm text-gray-600 mb-2 whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>보유 탐사데이터</p>
               <p className="text-xl font-medium text-black">{raidData.remaining_research_data}</p>
             </div>
-            <div className="text-center p-3 border border-gray-200 rounded">
-              <p className="text-sm text-gray-600 mb-2">나의 총 기여</p>
+            <div className="text-center p-3 border border-gray-200 rounded" style={{ writingMode: 'horizontal-tb' }}>
+              <p className="text-sm text-gray-600 mb-2 whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>나의 총 기여</p>
               <p className="text-xl font-medium text-black">{raidData.my_total_contribution}</p>
             </div>
           </div>
@@ -342,30 +342,30 @@ export function StudentRaid() {
       </Card>
 
       <Card className="border-2 border-gray-300">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-black text-center">레이드 완료 보상</CardTitle>
+        <CardHeader className="pb-4" style={{ writingMode: 'horizontal-tb' }}>
+          <CardTitle className="text-black text-center whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>레이드 완료 보상</CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-2 gap-4">
-          <div className="text-center p-3 border border-gray-200 rounded">
-            <p className="text-sm text-gray-600 mb-2">코랄</p>
+        <CardContent className="grid grid-cols-2 gap-4" style={{ writingMode: 'horizontal-tb' }}>
+          <div className="text-center p-3 border border-gray-200 rounded" style={{ writingMode: 'horizontal-tb' }}>
+            <p className="text-sm text-gray-600 mb-2 whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>코랄</p>
             <p className="text-lg font-medium text-black">{raidData.reward_coral}</p>
           </div>
-          <div className="text-center p-3 border border-gray-200 rounded">
-            <p className="text-sm text-gray-600 mb-2">탐사데이터</p>
+          <div className="text-center p-3 border border-gray-200 rounded" style={{ writingMode: 'horizontal-tb' }}>
+            <p className="text-sm text-gray-600 mb-2 whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>탐사데이터</p>
             <p className="text-lg font-medium text-black">{raidData.reward_research_data}</p>
           </div>
           {raidData.special_reward_description && (
-            <div className="col-span-2 text-center p-3 border border-gray-200 rounded">
-              <p className="text-sm text-gray-600 mb-2">특별 보상</p>
-              <p className="text-lg font-medium text-black">{raidData.special_reward_description}</p>
+            <div className="col-span-2 text-center p-3 border border-gray-200 rounded" style={{ writingMode: 'horizontal-tb' }}>
+              <p className="text-sm text-gray-600 mb-2 whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>특별 보상</p>
+              <p className="text-lg font-medium text-black whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>{raidData.special_reward_description}</p>
             </div>
           )}
         </CardContent>
       </Card>
 
       <Card className="border-2 border-gray-300">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-black text-center">레이드 로그</CardTitle>
+        <CardHeader className="pb-4" style={{ writingMode: 'horizontal-tb' }}>
+          <CardTitle className="text-black text-center whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>레이드 로그</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="max-h-64 overflow-y-auto space-y-3 border-2 border-gray-300 rounded-lg p-3">
