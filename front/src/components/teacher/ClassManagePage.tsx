@@ -4,7 +4,7 @@ import { Card, CardContent } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
-import { Plus, Users, Copy, Sword, BarChart3 } from "lucide-react";
+import { Plus, Users, Copy, Sword } from "lucide-react";
 import { Progress } from "../ui/progress";
 import { SectionCard } from "../common/SectionCard";
 import { get, post } from "../../utils/api";
@@ -251,7 +251,7 @@ export function ClassManagePage() {
         <div className="p-6 space-y-6 max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
 
           {/* Quick Actions */}
-          <div className="flex gap-3 flex-wrap">
+          <div className="flex gap-2 flex-wrap">
             <Button 
               className="border-2 border-gray-300 rounded-lg hover:bg-gray-100"
               variant="outline"
@@ -261,19 +261,12 @@ export function ClassManagePage() {
               학생 목록 조회
             </Button>
             <Button 
-              className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
-              onClick={() => navigate('/teacher/class/create')}
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              반 생성하기
-            </Button>
-            <Button 
               className="border-2 border-gray-300 rounded-lg hover:bg-gray-100"
               variant="outline"
               onClick={() => navigate('/teacher/quest')}
             >
               <Plus className="w-4 h-4 mr-2" />
-              퀘스트 등록
+              + 퀘스트 등록
             </Button>
             <Button 
               className="border-2 border-gray-300 rounded-lg hover:bg-gray-100"
@@ -281,21 +274,7 @@ export function ClassManagePage() {
               onClick={() => navigate('/teacher/raid/create')}
             >
               <Plus className="w-4 h-4 mr-2" />
-              레이드 등록
-            </Button>
-            <Button 
-              className="border-2 border-gray-300 rounded-lg hover:bg-gray-100"
-              variant="outline"
-              onClick={() => {
-                if (selectedClassId) {
-                  navigate(`/teacher/class/${selectedClassId}/dashboard`);
-                } else {
-                  alert('반을 먼저 선택해주세요.');
-                }
-              }}
-            >
-              <BarChart3 className="w-4 h-4 mr-2" />
-              반 대시보드
+              + 레이드 등록
             </Button>
           </div>
 

@@ -2,10 +2,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
-import { Save, User, Mail } from "lucide-react";
+import { Save, User, Mail, ArrowLeft } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 export function TeacherProfilePage() {
+  const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [profile, setProfile] = useState({
     name: "김선생",
@@ -29,6 +31,14 @@ export function TeacherProfilePage() {
       {/* Header */}
       <div className="border-b-2 border-gray-300 p-6">
         <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate(-1)}
+            className="border-2 border-gray-300 rounded-lg hover:bg-gray-100"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </Button>
           <div>
             <h1 className="text-2xl font-bold text-black">회원정보 수정</h1>
             <p className="text-gray-600 mt-1">개인정보를 수정할 수 있습니다</p>

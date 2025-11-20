@@ -1,0 +1,98 @@
+/* Tabler CSS와 Tailwind Grid 충돌 해결 */
+
+/* Bootstrap row/col 시스템이 제대로 작동하도록 보장 */
+.row {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  margin-left: -0.75rem !important;
+  margin-right: -0.75rem !important;
+}
+
+[class*="col-"] {
+  position: relative !important;
+  width: 100% !important;
+  padding-left: 0.75rem !important;
+  padding-right: 0.75rem !important;
+}
+
+.col-md-6 {
+  flex: 0 0 auto !important;
+  width: 50% !important;
+}
+
+@media (max-width: 767.98px) {
+  .col-md-6 {
+    width: 100% !important;
+  }
+}
+
+.col-lg-4 {
+  flex: 0 0 auto !important;
+  width: 33.333333% !important;
+}
+
+@media (max-width: 991.98px) {
+  .col-lg-4 {
+    width: 100% !important;
+  }
+}
+
+.col-12 {
+  flex: 0 0 auto !important;
+  width: 100% !important;
+}
+
+/* Tailwind grid가 Tabler보다 우선순위를 가지도록 설정 */
+.grid {
+  display: grid !important;
+}
+
+.grid-cols-1 {
+  grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+}
+
+.grid-cols-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+}
+
+.grid-cols-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+}
+
+.grid-cols-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+}
+
+@media (min-width: 768px) {
+  .md\:grid-cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  
+  .md\:grid-cols-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  .lg\:grid-cols-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+  
+  .lg\:grid-cols-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+}
+
+/* Gap 유틸리티도 보장 */
+.gap-2 {
+  gap: 0.5rem !important;
+}
+
+.gap-4 {
+  gap: 1rem !important;
+}
+
+.gap-6 {
+  gap: 1.5rem !important;
+}
+

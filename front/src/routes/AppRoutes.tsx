@@ -59,8 +59,10 @@ const StudentLayout: React.FC = () => {
   }, [location.search, location.pathname, navigate]);
 
   return (
-    <div className="min-h-screen bg-white">
-      <Outlet />
+    <div className="min-h-screen bg-white pb-24">
+      <div className="overflow-y-auto">
+        <Outlet />
+      </div>
       <StudentBottomNav />
     </div>
   );
@@ -98,11 +100,21 @@ const TeacherLayout: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white flex">
-      <Sidebar />
-      <main className="flex-1 border-l-2 border-gray-300 overflow-y-auto">
-        <Outlet />
-      </main>
+    <div className="window min-h-screen" style={{ margin: '20px', width: 'calc(100% - 40px)', height: 'calc(100vh - 40px)' }}>
+      <div className="title-bar">
+        <div className="title-bar-text">SCA 선생님 대시보드</div>
+        <div className="title-bar-controls">
+          <button aria-label="Minimize"></button>
+          <button aria-label="Maximize"></button>
+          <button aria-label="Close"></button>
+        </div>
+      </div>
+      <div className="window-body bg-white flex" style={{ padding: 0, height: 'calc(100% - 30px)' }}>
+        <Sidebar />
+        <main className="flex-1 border-l-2 border-gray-300 overflow-y-auto">
+          <Outlet />
+        </main>
+      </div>
     </div>
   );
 };

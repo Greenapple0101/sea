@@ -87,16 +87,16 @@ export function TeacherDashboardNew() {
 
   return (
     <>
-      {/* Header */}
-      <div className="border-b-2 border-gray-300 p-6">
+      {/* Tabler 스타일 적용: 페이지 헤더 */}
+      <div className="border-b-2 border-gray-300 p-6 page-header">
         <div className="flex items-center justify-between flex-col sm:flex-row gap-3">
           <div>
-            <h1>대시보드</h1>
-            <p className="text-gray-600 mt-1">{currentUser.real_name} 선생님</p>
+            <h1 className="page-title">대시보드</h1>
+            <p className="text-gray-600 mt-1 page-subtitle">{currentUser.real_name} 선생님</p>
           </div>
           <Button
             variant="outline"
-            className="border-2 border-gray-300 rounded-lg hover:bg-gray-100"
+            className="btn btn-outline-primary border-2 border-gray-300 rounded-lg hover:bg-gray-100"
             onClick={() => navigate('/teacher/profile')}
           >
             <Settings className="w-4 h-4 mr-2" />
@@ -105,12 +105,12 @@ export function TeacherDashboardNew() {
         </div>
       </div>
 
-      {/* Main Content */}
+      {/* Tabler 스타일 적용: 메인 콘텐츠 */}
       <div className="p-6 max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between mb-6">
-          <h2>반 목록</h2>
+          <h2 className="h2">반 목록</h2>
           <Button
-            className="bg-black hover:bg-gray-800 text-white rounded-lg"
+            className="btn btn-primary bg-black hover:bg-gray-800 text-white rounded-lg"
             onClick={() => navigate('/teacher/class/create')}
           >
             <Plus className="w-4 h-4 mr-2" />
@@ -118,24 +118,33 @@ export function TeacherDashboardNew() {
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
-          {classes.length > 0 ? (
-            classes.map((classItem) => (
-              <ClassCard
-                key={classItem.class_id}
-                class_id={Number(classItem.class_id)}
-                class_name={classItem.class_name}
-                student_count={classItem.student_count}
-                waiting_quest_count={classItem.waiting_quest_count}
-                // 반 관리 페이지로 이동
-                onClick={() => navigate('/teacher/class', { state: { classId: Number(classItem.class_id) } })}
-              />
-            ))
-          ) : (
-            // API에서 받아온 반 목록이 비어있을 경우 메시지를 표시
-            <p>생성된 반이 없습니다. '반 생성하기' 버튼을 눌러 새 반을 만들어주세요.</p>
-          )}
-        </div>
+        {/* 반 목록 카드 그리드 */}
+        {classes.length > 0 ? (
+          <div className="row row-cards">
+            {classes.map((classItem) => (
+              <div key={classItem.class_id} className="col-md-6 col-lg-4 mb-4">
+                <ClassCard
+                  class_id={Number(classItem.class_id)}
+                  class_name={classItem.class_name}
+                  student_count={classItem.student_count}
+                  waiting_quest_count={classItem.waiting_quest_count}
+                  onClick={() => navigate('/teacher/class', { state: { classId: Number(classItem.class_id) } })}
+                />
+              </div>
+            ))}
+          </div>
+        ) : (
+          // API에서 받아온 반 목록이 비어있을 경우 메시지를 표시
+          <div className="row">
+            <div className="col-12">
+              <div className="card">
+                <div className="card-body text-center py-5">
+                  <p className="text-muted mb-0">생성된 반이 없습니다. '반 생성하기' 버튼을 눌러 새 반을 만들어주세요.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );

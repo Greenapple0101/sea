@@ -379,6 +379,7 @@ export function RaidCreatePageNew() {
                 <RadioGroup 
                   value={formState.template || creationInfo.templates[0]?.code || 'ZELUS_INDUSTRY'} 
                   onValueChange={(value) => setFormState((prev) => ({ ...prev, template: value }))}
+                  className="grid grid-cols-1 md:grid-cols-2 gap-4"
                 >
                   {creationInfo.templates.map((template) => (
                     <Card 

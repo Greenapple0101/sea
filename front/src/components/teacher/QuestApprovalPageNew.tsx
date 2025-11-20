@@ -402,13 +402,13 @@ export function QuestApprovalPageNew() {
 
       <Dialog open={showApprovalModal} onOpenChange={setShowApprovalModal}>
         <DialogContent className="border-2 border-gray-300 rounded-lg max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-center">완료되었습니다</DialogTitle>
+          <DialogHeader className="text-center">
+            <DialogTitle className="text-center text-xl font-bold">완료되었습니다</DialogTitle>
           </DialogHeader>
-          <div className="text-center py-4">
+          <div className="text-center py-4 space-y-2">
             <CheckCircle className="w-16 h-16 mx-auto mb-4 text-black" />
-            <p className="text-lg">퀘스트가 승인되었습니다.</p>
-            <p className="text-sm text-gray-600 mt-2">보상이 학생에게 지급되었습니다.</p>
+            <p className="text-lg font-medium text-black whitespace-normal">퀘스트가 승인되었습니다.</p>
+            <p className="text-sm text-gray-600 mt-2 whitespace-normal">보상이 학생에게 지급되었습니다.</p>
           </div>
           <div className="flex justify-center pt-4">
             <Button 
@@ -423,13 +423,13 @@ export function QuestApprovalPageNew() {
 
       <Dialog open={showRejectModal} onOpenChange={setShowRejectModal}>
         <DialogContent className="border-2 border-gray-300 rounded-lg max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-center">반려 처리 완료</DialogTitle>
+          <DialogHeader className="text-center">
+            <DialogTitle className="text-center text-xl font-bold">반려 처리 완료</DialogTitle>
           </DialogHeader>
-          <div className="text-center py-4">
+          <div className="text-center py-4 space-y-2">
             <X className="w-16 h-16 mx-auto mb-4 text-black" />
-            <p className="text-lg">퀘스트가 반려되었습니다.</p>
-            <p className="text-sm text-gray-600 mt-2">학생에게 반려 사유가 전달되었습니다.</p>
+            <p className="text-lg font-medium text-black whitespace-normal">퀘스트가 반려되었습니다.</p>
+            <p className="text-sm text-gray-600 mt-2 whitespace-normal">학생에게 반려 사유가 전달되었습니다.</p>
           </div>
           <div className="flex justify-center pt-4">
             <Button 

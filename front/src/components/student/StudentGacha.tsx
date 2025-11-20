@@ -164,7 +164,7 @@ export function StudentGacha() {
   };
 
   return (
-    <div className="p-4 space-y-6 bg-white min-h-screen pb-20">
+    <div className="p-4 space-y-6 bg-white">
       {/* 헤더 */}
       <div className="text-center">
         <h1 className="text-xl font-medium text-black mb-2">가챠 머신</h1>

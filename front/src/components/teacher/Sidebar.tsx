@@ -37,20 +37,22 @@ export function Sidebar() {
 
   return (
     <div className={`max-h-screen bg-white border-r-2 border-gray-300 transition-all ${collapsed ? 'w-20' : 'w-64'} flex flex-col`}>
-      <div className="p-4 border-b-2 border-gray-300">
+      {/* Tabler 스타일 적용: 사이드바 헤더 */}
+      <div className="p-4 border-b-2 border-gray-300 navbar-brand">
         <div className="flex items-center justify-between">
-          {!collapsed && <h2>SCA 수학학원</h2>}
+          {!collapsed && <h2 className="navbar-brand-title text-base font-normal">SCA 수학학원</h2>}
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setCollapsed(!collapsed)}
-            className="border border-gray-300 hover:bg-gray-100"
+            className="btn btn-icon border border-gray-300 hover:bg-gray-100"
           >
             <Menu className="w-4 h-4" />
           </Button>
         </div>
       </div>
-      <nav className="p-4 space-y-2 flex-1 overflow-y-auto">
+      {/* Tabler 스타일 적용: 네비게이션 메뉴 */}
+      <nav className="p-4 space-y-2 flex-1 overflow-y-auto nav nav-pills nav-vertical">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = location.pathname === item.id;
@@ -58,8 +60,8 @@ export function Sidebar() {
             <Button
               key={item.id}
               variant={isActive ? "default" : "ghost"}
-              className={`w-full justify-start rounded-none ${isActive
-                ? 'bg-black text-white hover:bg-gray-800'
+              className={`w-full justify-start rounded-none nav-link ${isActive
+                ? 'bg-black text-white hover:bg-gray-800 active'
                 : 'hover:bg-gray-100 border border-transparent hover:border-gray-300'
                 }`}
               onClick={() => navigate(item.id)}
@@ -70,10 +72,11 @@ export function Sidebar() {
           );
         })}
       </nav>
+      {/* Tabler 스타일 적용: 푸터 */}
       <div className="p-4 border-t-2 border-gray-300">
         <Button
           variant="ghost"
-          className="w-full justify-start rounded-none text-red-600 hover:bg-red-50 hover:text-red-700 border border-transparent hover:border-red-300"
+          className="w-full justify-start rounded-none text-red-600 hover:bg-red-50 hover:text-red-700 border border-transparent hover:border-red-300 btn btn-danger"
           onClick={() => {
             logout();
             navigate('/');
