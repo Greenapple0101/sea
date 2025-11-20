@@ -59,10 +59,8 @@ const StudentLayout: React.FC = () => {
   }, [location.search, location.pathname, navigate]);
 
   return (
-    <div className="min-h-screen bg-white pb-24">
-      <div className="overflow-y-auto">
-        <Outlet />
-      </div>
+    <div className="min-h-screen bg-white" style={{ paddingBottom: '70px' }}>
+      <Outlet />
       <StudentBottomNav />
     </div>
   );

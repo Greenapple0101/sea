@@ -8,9 +8,6 @@ export function RoleSelection() {
       <div className="xp-window w-full max-w-md">
         <div className="xp-title-bar">
           <span className="xp-title-text">학습 관리 시스템</span>
-          <div className="xp-title-buttons">
-            <button className="xp-close">✕</button>
-          </div>
         </div>
 
         <div className="xp-body">

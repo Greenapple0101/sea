@@ -88,7 +88,7 @@ export function StudentProfile() {
   const currentUser = user as StudentUser;
 
   return (
-    <div className="p-4 space-y-4 bg-white min-h-screen pb-20">
+    <div className="p-4 space-y-4 bg-white">
       {/* 프로필 헤더 */}
       <Card className="border-2 border-gray-300">
         <CardContent className="p-6">

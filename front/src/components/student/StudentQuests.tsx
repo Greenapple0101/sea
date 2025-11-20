@@ -353,7 +353,7 @@ export function StudentQuests() {
   }
 
   return (
-    <div className="p-4 space-y-4 bg-white min-h-screen pb-20">
+    <div className="p-4 space-y-4 bg-white">
       {/* 헤더 */}
       <div className="text-center mb-6">
         <h1 className="text-xl font-medium text-black">오늘의 퀘스트</h1>
@@ -369,7 +369,7 @@ export function StudentQuests() {
           </Card>
         ) : (
           quests.map((quest) => (
-            <Card key={quest.assignment_id} className="border-2 border-gray-300">
+            <Card key={quest.assignment_id} className="border-2 border-gray-300" style={{ borderStyle: 'outset', borderWidth: '2px' }}>
               <CardContent className="p-4">
                 <div className="flex items-start space-x-3">
                   <Checkbox
@@ -392,7 +392,7 @@ export function StudentQuests() {
                         </div>
                       </div>
 
-                      <Button
+                      <button
                         onClick={() => handleQuestAction(quest)}
                         disabled={isButtonDisabled(quest.status)}
                         className={`px-3 py-1 text-sm ${isButtonDisabled(quest.status)
@@ -401,10 +401,15 @@ export function StudentQuests() {
                               ? 'bg-gray-800 text-white hover:bg-gray-900'
                               : 'bg-gray-600 text-white hover:bg-gray-700'
                           }`}
-                        size="sm"
+                        style={!isButtonDisabled(quest.status) ? {
+                          border: '2px outset #c0c0c0',
+                          backgroundColor: quest.status === 'APPROVED' ? '#808080' : '#c0c0c0',
+                          color: '#000',
+                          cursor: 'pointer'
+                        } : {}}
                       >
                         {getButtonText(quest.status)}
-                      </Button>
+                      </button>
                     </div>
 
                     <div className="flex items-center space-x-4 text-sm">
@@ -427,32 +432,34 @@ export function StudentQuests() {
 
       {/* 하단 버튼들 */}
       <div className="mt-4 flex justify-center space-x-4">
-        <Button
+        <button
           onClick={() => setIsExpiredModalOpen(true)}
-          className="bg-gray-100 text-black border border-gray-300 hover:bg-gray-200"
+          className="px-4 py-2 text-sm bg-gray-100 text-black hover:bg-gray-200"
+          style={{ border: '2px outset #c0c0c0', backgroundColor: '#c0c0c0', cursor: 'pointer' }}
         >
           마감지난 퀘스트들 ({expiredQuests.length})
-        </Button>
-        <Button
+        </button>
+        <button
           onClick={() => setIsCompletedModalOpen(true)}
-          className="bg-gray-100 text-black border border-gray-300 hover:bg-gray-200"
+          className="px-4 py-2 text-sm bg-gray-100 text-black hover:bg-gray-200"
+          style={{ border: '2px outset #c0c0c0', backgroundColor: '#c0c0c0', cursor: 'pointer' }}
         >
           승인완료된 퀘스트들 ({approvedQuests.length})
-        </Button>
+        </button>
       </div>
 
       {/* 하단 획득 현황 */}
-      <Card className="border-2 border-gray-300 mt-6">
+      <Card className="border-2 border-gray-300 mt-6" style={{ borderStyle: 'inset', borderWidth: '2px', marginBottom: '20px' }}>
         <CardHeader>
           <CardTitle className="text-black text-center">총 획득 현황</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-4 text-center">
-            <div className="p-3 border border-gray-200 rounded">
+            <div className="p-3 border border-gray-200 rounded" style={{ borderStyle: 'inset', borderWidth: '2px', backgroundColor: '#f0f0f0' }}>
               <p className="text-sm text-gray-600">획득한 코랄</p>
               <p className="text-xl font-medium text-black">{currentUser.total_earned_coral ?? 0}</p>
             </div>
-            <div className="p-3 border border-gray-200 rounded">
+            <div className="p-3 border border-gray-200 rounded" style={{ borderStyle: 'inset', borderWidth: '2px', backgroundColor: '#f0f0f0' }}>
               <p className="text-sm text-gray-600">획득한 탐사데이터</p>
               <p className="text-xl font-medium text-black">{currentUser.total_earned_research_data ?? 0}</p>
             </div>

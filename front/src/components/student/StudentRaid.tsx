@@ -234,7 +234,7 @@ export function StudentRaid() {
 
   if (loading) {
     return (
-      <div className="p-6 bg-white min-h-screen pb-20">
+      <div className="p-6 bg-white">
         <p>레이드 정보를 불러오는 중...</p>
       </div>
     );
@@ -242,7 +242,7 @@ export function StudentRaid() {
 
   if (!raidData) {
     return (
-      <div className="p-6 space-y-4 bg-white min-h-screen pb-20">
+      <div className="p-6 space-y-4 bg-white">
         <div className="text-center py-8">
           <p className="text-lg text-gray-600 mb-4">진행 중인 레이드가 없습니다.</p>
           <p className="text-sm text-gray-500">선생님이 레이드를 생성하면 여기에 표시됩니다.</p>
@@ -259,7 +259,7 @@ export function StudentRaid() {
 
   if (error) {
     return (
-      <div className="p-6 space-y-4 bg-white min-h-screen pb-20">
+      <div className="p-6 space-y-4 bg-white">
         <p className="text-red-600">{error}</p>
         <Button onClick={refetchRaid} className="bg-black text-white">다시 시도</Button>
       </div>
@@ -271,7 +271,7 @@ export function StudentRaid() {
     : 0;
 
   return (
-    <div className="p-4 space-y-4 bg-white min-h-screen pb-20">
+    <div className="p-4 space-y-4 bg-white">
       <Card className="border-2 border-gray-300">
         <CardHeader className="text-center">
           <CardTitle className="text-black">{raidData.raid_name}</CardTitle>

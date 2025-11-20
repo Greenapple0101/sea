@@ -35,7 +35,7 @@ export function QuestTypeSelection() {
             {/* 개인 퀘스트 */}
             <Card className="card border-2 border-gray-300 hover:border-gray-500 transition-colors">
               <CardHeader className="card-header p-6 pb-4">
-                <CardTitle className="card-title d-flex align-items-center gap-2 text-black text-xl">
+                <CardTitle className="card-title d-flex align-items-center gap-2 text-black text-xl whitespace-nowrap" style={{ writingMode: 'horizontal-tb' }}>
                   <User className="w-6 h-6" />
                   개인 퀘스트
                 </CardTitle>
@@ -65,7 +65,7 @@ export function QuestTypeSelection() {
             {/* 단체 퀘스트 */}
             <Card className="card border-2 border-gray-300 hover:border-gray-500 transition-colors">
               <CardHeader className="card-header p-6 pb-4">
-                <CardTitle className="card-title d-flex align-items-center gap-2 text-black text-xl">
+                <CardTitle className="card-title d-flex align-items-center gap-2 text-black text-xl whitespace-nowrap" style={{ writingMode: 'horizontal-tb' }}>
                   <Users className="w-6 h-6" />
                   단체 퀘스트
                 </CardTitle>

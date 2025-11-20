@@ -50,7 +50,7 @@ export function QuestDetailPage({ quest, onBack }: QuestDetailPageProps) {
   const myStatus = completedStudents.find(student => student.name === currentUser.real_name) ? '완료' : '미완료';
 
   return (
-    <div className="p-6 space-y-6 bg-gray-50 min-h-screen pb-20">
+    <div className="p-6 space-y-6 bg-gray-50">
       {/* 헤더 */}
       <div className="flex items-center justify-between">
         <Button

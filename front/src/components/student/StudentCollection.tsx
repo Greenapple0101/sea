@@ -178,7 +178,7 @@ export function StudentCollection() {
   }
 
   return (
-    <div className="p-4 space-y-4 bg-white min-h-screen pb-20">
+    <div className="p-4 space-y-4 bg-white">
       {/* 헤더 */}
       <div className="text-center mb-6">
         <h1 className="text-xl font-medium text-black">도감</h1>

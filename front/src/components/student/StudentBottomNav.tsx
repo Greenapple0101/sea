@@ -19,7 +19,7 @@ export function StudentBottomNav() {
 
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-gray-300">
+    <div className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-gray-300" style={{ borderTopStyle: 'outset', borderTopWidth: '2px', zIndex: 1000 }}>
       <div className="max-w-md mx-auto">
         <div className="flex gap-1 p-2 overflow-x-auto">
           {navItems.map((item) => {
@@ -35,6 +35,7 @@ export function StudentBottomNav() {
                     ? 'bg-black text-white'
                     : 'text-gray-600 hover:bg-gray-100'
                 }`}
+                style={isActive ? {} : { border: '1px outset #c0c0c0' }}
               >
                 <IconComponent size={20} />
                 <span className="text-xs mt-1">{item.label}</span>
@@ -49,6 +50,7 @@ export function StudentBottomNav() {
               navigate('/');
             }}
             className="flex flex-col items-center justify-center py-2 px-3 rounded transition-all text-gray-600 hover:bg-red-100 hover:text-red-600 whitespace-nowrap"
+            style={{ border: '1px outset #c0c0c0' }}
           >
             <LogOut size={20} />
             <span className="text-xs mt-1">로그아웃</span>
