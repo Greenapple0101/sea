@@ -221,10 +221,9 @@ export function StudentCollection() {
         {/* 수족관 보기 */}
         <TabsContent value="aquarium" className="space-y-4">
           <Card className="border-2 border-gray-300">
-            <CardHeader>
-              <CardTitle className="text-black text-center">내 수족관</CardTitle>
-            </CardHeader>
-            <CardContent>
+            <CardContent className="p-6">
+              {/* 내 수족관 제목 */}
+              <h2 className="text-black text-center mb-4" style={{ writingMode: 'horizontal-tb' }}>내 수족관</h2>
               {/* 수족관 배경 */}
               <div className="w-full h-64 bg-gray-100 border-2 border-gray-300 rounded p-4 relative overflow-hidden">
                 <div className="grid grid-cols-4 gap-2 h-full">

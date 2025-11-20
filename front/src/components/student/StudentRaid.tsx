@@ -286,11 +286,11 @@ export function StudentRaid() {
       </Card>
 
       <Card className="border-2 border-gray-300">
-        <CardContent className="p-6">
+        <CardContent className="p-6" style={{ writingMode: 'horizontal-tb' }}>
           <div className="w-full h-48 bg-black rounded mb-4 flex items-center justify-center">
-            <div className="text-center text-white">
+            <div className="text-center text-white" style={{ writingMode: 'horizontal-tb' }}>
               <div className="w-20 h-20 bg-gray-400 rounded-full mx-auto mb-2" />
-              <p className="font-medium">{raidData.template_display_name}</p>
+              <p className="font-medium whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>{raidData.template_display_name}</p>
             </div>
           </div>
 
@@ -317,7 +317,7 @@ export function StudentRaid() {
         <CardHeader className="pb-4" style={{ writingMode: 'horizontal-tb', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <CardTitle className="text-black text-center whitespace-normal" style={{ writingMode: 'horizontal-tb', display: 'block', width: '100%' }}>개인 기여</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4" style={{ writingMode: 'horizontal-tb' }}>
           <div className="grid grid-cols-2 gap-4" style={{ writingMode: 'horizontal-tb' }}>
             <div className="text-center p-3 border border-gray-200 rounded" style={{ writingMode: 'horizontal-tb' }}>
               <p className="text-sm text-gray-600 mb-2 whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>보유 탐사데이터</p>
@@ -329,11 +329,12 @@ export function StudentRaid() {
             </div>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-3" style={{ writingMode: 'horizontal-tb' }}>
             <Button
               onClick={() => setIsContributeOpen(true)}
               className="w-full bg-black text-white hover:bg-gray-800 h-12"
               disabled={raidData.remaining_research_data <= 0 || raidData.status !== 'ACTIVE'}
+              style={{ writingMode: 'horizontal-tb' }}
             >
               에너지 주입
             </Button>
@@ -367,10 +368,10 @@ export function StudentRaid() {
         <CardHeader className="pb-4" style={{ writingMode: 'horizontal-tb', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <CardTitle className="text-black text-center whitespace-normal" style={{ writingMode: 'horizontal-tb', display: 'block', width: '100%' }}>레이드 로그</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="max-h-64 overflow-y-auto space-y-3 border-2 border-gray-300 rounded-lg p-3">
+        <CardContent style={{ writingMode: 'horizontal-tb' }}>
+          <div className="max-h-64 overflow-y-auto space-y-3 border-2 border-gray-300 rounded-lg p-3" style={{ writingMode: 'horizontal-tb' }}>
             {logs.length === 0 && (
-              <p className="text-sm text-gray-500 text-center">아직 활동 로그가 없습니다.</p>
+              <p className="text-sm text-gray-500 text-center whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>아직 활동 로그가 없습니다.</p>
             )}
             {logs.map((log) => {
               let timeString = '알 수 없음';
@@ -393,16 +394,17 @@ export function StudentRaid() {
                 <div
                   key={`${log.created_at}-${log.student_name ?? log.type}-${log.log_id ?? Math.random()}`}
                   className="bg-gray-50 border-l-4 border-gray-400 p-3 rounded-r"
+                  style={{ writingMode: 'horizontal-tb' }}
                 >
-                  <div className="flex justify-between items-start gap-3">
-                    <div className="flex-1 text-sm text-black">
-                      <span className="font-medium whitespace-normal">
+                  <div className="flex justify-between items-start gap-3" style={{ writingMode: 'horizontal-tb' }}>
+                    <div className="flex-1 text-sm text-black" style={{ writingMode: 'horizontal-tb' }}>
+                      <span className="font-medium whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>
                         {log.type === 'ATTACK_LOG'
                           ? `${log.student_name ?? '알 수 없음'}님이 ${log.damage_amount ?? 0} 데미지를 입혔습니다.`
                           : log.message ?? '시스템 알림'}
                       </span>
                     </div>
-                    <span className="text-xs text-gray-600 bg-gray-200 px-2 py-1 rounded whitespace-nowrap flex-shrink-0">
+                    <span className="text-xs text-gray-600 bg-gray-200 px-2 py-1 rounded whitespace-nowrap flex-shrink-0" style={{ writingMode: 'horizontal-tb' }}>
                       {timeString}
                     </span>
                   </div>
