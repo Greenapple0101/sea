@@ -273,8 +273,8 @@ export function StudentRaid() {
   return (
     <div className="p-4 space-y-4 bg-white" style={{ writingMode: 'horizontal-tb' }}>
       <Card className="border-2 border-gray-300">
-        <CardHeader className="text-center pb-4" style={{ writingMode: 'horizontal-tb' }}>
-          <CardTitle className="text-black text-xl mb-3 whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>{raidData.raid_name}</CardTitle>
+        <CardHeader className="text-center pb-4" style={{ writingMode: 'horizontal-tb', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <CardTitle className="text-black text-xl mb-3 whitespace-normal" style={{ writingMode: 'horizontal-tb', display: 'block', width: '100%' }}>{raidData.raid_name}</CardTitle>
           <div className="flex justify-between items-center text-sm mb-2" style={{ writingMode: 'horizontal-tb' }}>
             <span className="text-gray-600 whitespace-nowrap">남은 시간</span>
             <span className="text-black font-medium whitespace-nowrap">{formatRemainingTime}</span>
@@ -314,8 +314,8 @@ export function StudentRaid() {
       </Card>
 
       <Card className="border-2 border-gray-300">
-        <CardHeader className="pb-4" style={{ writingMode: 'horizontal-tb' }}>
-          <CardTitle className="text-black text-center whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>개인 기여</CardTitle>
+        <CardHeader className="pb-4" style={{ writingMode: 'horizontal-tb', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <CardTitle className="text-black text-center whitespace-normal" style={{ writingMode: 'horizontal-tb', display: 'block', width: '100%' }}>개인 기여</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4" style={{ writingMode: 'horizontal-tb' }}>
@@ -342,8 +342,8 @@ export function StudentRaid() {
       </Card>
 
       <Card className="border-2 border-gray-300">
-        <CardHeader className="pb-4" style={{ writingMode: 'horizontal-tb' }}>
-          <CardTitle className="text-black text-center whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>레이드 완료 보상</CardTitle>
+        <CardHeader className="pb-4" style={{ writingMode: 'horizontal-tb', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <CardTitle className="text-black text-center whitespace-normal" style={{ writingMode: 'horizontal-tb', display: 'block', width: '100%' }}>레이드 완료 보상</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-2 gap-4" style={{ writingMode: 'horizontal-tb' }}>
           <div className="text-center p-3 border border-gray-200 rounded" style={{ writingMode: 'horizontal-tb' }}>
@@ -364,8 +364,8 @@ export function StudentRaid() {
       </Card>
 
       <Card className="border-2 border-gray-300">
-        <CardHeader className="pb-4" style={{ writingMode: 'horizontal-tb' }}>
-          <CardTitle className="text-black text-center whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>레이드 로그</CardTitle>
+        <CardHeader className="pb-4" style={{ writingMode: 'horizontal-tb', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <CardTitle className="text-black text-center whitespace-normal" style={{ writingMode: 'horizontal-tb', display: 'block', width: '100%' }}>레이드 로그</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="max-h-64 overflow-y-auto space-y-3 border-2 border-gray-300 rounded-lg p-3">
