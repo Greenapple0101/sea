@@ -108,51 +108,12 @@ export function IndividualQuestCreatePage() {
       setFetchError(null);
 
       try {
-        // currentClassId가 없으면 teacher의 첫 번째 반 사용
+        // currentClassId가 없으면 학생 목록을 불러오지 않음 (자동으로 첫 번째 반 선택하지 않음)
         let classIdToUse = currentClassId;
-        
-        // TeacherUser 타입 체크 및 classes 속성 확인
-        if (!classIdToUse && user && userType === 'teacher') {
-          const teacherUser = user as TeacherUser;
-          
-          // classes가 없거나 비어있으면 API에서 가져오기
-          if (!teacherUser.classes || teacherUser.classes.length === 0) {
-            try {
-              console.log('반 목록을 API에서 가져오는 중...');
-              const classesResponse = await get('/api/v1/classes');
-              if (classesResponse.ok) {
-                const classesData = await classesResponse.json();
-                console.log('반 목록 응답:', classesData);
-                const classIds = (classesData.data?.classes || []).map((c: any) => String(c.class_id || c.classId));
-                if (classIds.length > 0) {
-                  updateUser({ classes: classIds });
-                  classIdToUse = classIds[0];
-                  if (setCurrentClass) {
-                    setCurrentClass(classIdToUse);
-                  }
-                  console.log('반 ID 설정:', classIdToUse);
-                } else {
-                  console.warn('반 목록이 비어있습니다.');
-                }
-              } else {
-                const errorData = await classesResponse.json();
-                console.error('반 목록 가져오기 실패:', errorData);
-              }
-            } catch (err) {
-              console.error('반 목록 가져오기 에러:', err);
-            }
-          } else if (teacherUser.classes.length > 0) {
-            classIdToUse = teacherUser.classes[0];
-            // currentClassId 업데이트 (다른 값일 때만)
-            if (classIdToUse !== currentClassId && setCurrentClass) {
-              setCurrentClass(classIdToUse);
-            }
-            console.log('저장된 반 ID 사용:', classIdToUse);
-          }
-        }
 
         if (!classIdToUse) {
-          setFetchError("반 정보를 찾을 수 없습니다.");
+          setFetchError("반을 선택해주세요. 반 관리 페이지에서 반을 선택한 후 개인 퀘스트를 등록해주세요.");
+          setAllStudents([]);
           fetchingRef.current = false;
           setIsLoadingStudents(false);
           return;
@@ -461,12 +422,12 @@ export function IndividualQuestCreatePage() {
         <div className="space-y-8">
           {/* 퀘스트 기본 정보 */}
           <Card className="border border-gray-200 shadow-sm">
-            <CardHeader className="pb-4 border-b border-gray-100">
-              <CardTitle className="flex items-center gap-2 text-xl text-gray-900">
-                <User className="w-5 h-5 text-gray-600" />
-                퀘스트 기본 정보
-              </CardTitle>
-            </CardHeader>
+            <div className="px-6 pt-6 pb-4 border-b border-gray-100 flex items-center justify-center">
+              <div className="flex items-center gap-2 text-xl font-semibold text-gray-900">
+                <User className="w-5 h-5 text-gray-600 flex-shrink-0" />
+                <span className="whitespace-nowrap">퀘스트 기본 정보</span>
+              </div>
+            </div>
             <CardContent className="pt-6 space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="title" className="text-sm font-semibold text-gray-700">

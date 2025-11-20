@@ -216,6 +216,8 @@ export function StudentQuests() {
       // 파일이 있으면 먼저 업로드
       if (attachedFiles.length > 0) {
         const file = attachedFiles[0];
+        console.log('파일 업로드 시작:', file.name, file.size, file.type);
+        
         const uploadFormData = new FormData();
         uploadFormData.append('file', file);
 
@@ -224,24 +226,41 @@ export function StudentQuests() {
         if (accessToken) {
           uploadHeaders['Authorization'] = `Bearer ${accessToken}`;
         }
+        // FormData를 사용할 때는 Content-Type을 설정하지 않음 (브라우저가 자동 설정)
 
         const uploadUrl = getFullUrl('/api/v1/files/upload');
+        console.log('파일 업로드 URL:', uploadUrl);
+        
         const uploadResponse = await fetch(uploadUrl, {
           method: 'POST',
           headers: uploadHeaders,
           body: uploadFormData,
         });
 
+        console.log('파일 업로드 응답 상태:', uploadResponse.status, uploadResponse.statusText);
+
         if (!uploadResponse.ok) {
-          const uploadError = await uploadResponse.json().catch(() => ({}));
-          throw new Error(uploadError.message || '파일 업로드에 실패했습니다.');
+          let uploadError: any = {};
+          try {
+            uploadError = await uploadResponse.json();
+            console.error('파일 업로드 에러 응답:', uploadError);
+          } catch (e) {
+            const errorText = await uploadResponse.text();
+            console.error('파일 업로드 에러 텍스트:', errorText);
+            uploadError = { message: errorText || '파일 업로드에 실패했습니다.' };
+          }
+          throw new Error(uploadError.message || uploadError.error || `파일 업로드 실패 (${uploadResponse.status})`);
         }
 
         const uploadData = await uploadResponse.json();
+        console.log('파일 업로드 성공 응답:', uploadData);
+        
         if (uploadData.success && uploadData.data?.url) {
           attachmentUrl = uploadData.data.url;
+          console.log('파일 업로드 완료, URL:', attachmentUrl);
         } else {
-          throw new Error('파일 업로드 응답이 올바르지 않습니다.');
+          console.error('파일 업로드 응답 형식 오류:', uploadData);
+          throw new Error(uploadData.message || '파일 업로드 응답이 올바르지 않습니다.');
         }
       }
 

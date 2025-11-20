@@ -10,15 +10,15 @@ import { useNavigate, useParams } from "react-router-dom";
 
 export function StudentDetailPage() {
   const navigate = useNavigate();
-  const { id } = useParams<{ id: string }>();
+  const { classId, id } = useParams<{ classId?: string; id: string }>();
   
   const handleNavigate = (page: string) => {
     const routeMap: Record<string, string> = {
       'teacher-dashboard': '/teacher/dashboard',
       'quest-create-new': '/teacher/quest',
-      'class-manage': '/teacher/class',
+      'class-manage': classId ? `/teacher/class/${classId}` : '/teacher/class',
       'class-create': '/teacher/class/create',
-      'student-list': '/teacher/students',
+      'student-list': classId ? `/teacher/students/${classId}` : '/teacher/students',
       'raid-create-new': '/teacher/raid/create',
       'raid-manage': '/teacher/raid/manage',
       'quest-approval': '/teacher/quest/approval',

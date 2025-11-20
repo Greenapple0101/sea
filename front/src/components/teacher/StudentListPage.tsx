@@ -22,9 +22,9 @@ interface StudentListResponse {
 export function StudentListPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { id } = useParams<{ id?: string }>();
+  const { classId: urlClassId } = useParams<{ classId?: string }>();
   const locationState = location.state as { classId?: number } | null;
-  const { user } = useAuth();
+  const { user, currentClassId } = useAuth();
   
   const [students, setStudents] = useState<StudentInfo[]>([]);
   const [classInfo, setClassInfo] = useState<{ className: string; studentCount: number } | null>(null);
@@ -33,49 +33,105 @@ export function StudentListPage() {
 
   useEffect(() => {
     const fetchStudents = async () => {
-      // URL 파라미터, location.state, user.classes, 또는 첫 번째 반 중 우선순위로 classId 결정
+      // URL 파라미터가 필수! URL에 classId가 없으면 반 관리 페이지로 리다이렉트
       let classId: number | null = null;
       
-      if (id) {
-        classId = Number(id);
-      } else if (locationState?.classId) {
-        classId = locationState.classId;
-      } else if (user && 'classes' in user && user.classes && user.classes.length > 0) {
-        // user.classes에서 첫 번째 반 ID 사용
-        classId = Number(user.classes[0]);
-      } else {
-        // classId가 없으면 반 목록에서 첫 번째 반 가져오기
-        try {
-          const classesResponse = await get('/api/v1/classes');
-          const classesJson = await classesResponse.json();
-          if (classesResponse.ok && classesJson.data?.classes?.length > 0) {
-            classId = classesJson.data.classes[0].class_id ?? classesJson.data.classes[0].classId;
+      console.log('StudentListPage - urlClassId:', urlClassId, 'currentClassId:', currentClassId, 'locationState:', locationState);
+      
+      if (urlClassId) {
+        // 숫자로 변환 시도
+        const parsed = Number(urlClassId);
+        if (!isNaN(parsed)) {
+          classId = parsed;
+          console.log('URL에서 숫자 classId 파싱:', urlClassId, '->', classId);
+        } else {
+          // 숫자가 아니면 반 이름으로 간주하고 반 목록에서 찾기
+          console.log('URL에서 반 이름으로 classId 찾기:', urlClassId);
+          try {
+            const classesResponse = await get('/api/v1/classes');
+            const classesJson = await classesResponse.json();
+            if (classesResponse.ok && classesJson.data?.classes?.length > 0) {
+              const foundClass = classesJson.data.classes.find(
+                (c: any) => c.class_name === urlClassId || c.className === urlClassId
+              );
+              if (foundClass) {
+                classId = foundClass.class_id ?? foundClass.classId;
+                console.log('반 이름으로 classId 찾음:', urlClassId, '->', classId);
+                // URL도 숫자 ID로 업데이트
+                navigate(`/teacher/students/${classId}`, { replace: true });
+              } else {
+                setError(`반 "${urlClassId}"을 찾을 수 없습니다.`);
+                setStudents([]);
+                setClassInfo(null);
+                setLoading(false);
+                return;
+              }
+            }
+          } catch (err) {
+            console.error('반 목록 조회 실패:', err);
+            setError('반 정보를 불러오지 못했습니다.');
+            setStudents([]);
+            setClassInfo(null);
+            setLoading(false);
+            return;
           }
-        } catch (err) {
-          console.error('반 목록 조회 실패:', err);
         }
+      } else {
+        // URL에 classId가 없으면 반 관리 페이지로 리다이렉트
+        console.log('URL에 classId가 없습니다. 반 관리 페이지로 리다이렉트');
+        if (currentClassId) {
+          // currentClassId가 있으면 그것을 사용하여 URL 업데이트
+          navigate(`/teacher/students/${currentClassId}`, { replace: true });
+        } else {
+          // currentClassId도 없으면 반 관리 페이지로 이동
+          navigate('/teacher/class', { replace: true });
+        }
+        return;
       }
 
       if (classId === null) {
-        setError('반을 선택해주세요.');
-        setLoading(false);
+        console.log('classId가 null입니다. 반 관리 페이지로 리다이렉트');
+        navigate('/teacher/class', { replace: true });
         return;
       }
 
       setLoading(true);
       setError(null);
       try {
-        console.log('학생 목록 조회 시작, 반 ID:', classId);
+        console.log('학생 목록 조회 시작, 반 ID:', classId, '타입:', typeof classId);
         const response = await get(`/api/v1/classes/${classId}/students`);
         const json = await response.json();
         console.log('학생 목록 응답:', json);
+        console.log('응답 데이터:', json.data);
+        console.log('학생 수:', json.data?.student_count, '학생 목록:', json.data?.students);
         
         if (response.ok) {
           const data: StudentListResponse = json.data;
+          console.log('학생 목록 데이터:', {
+            classId: data.class_id,
+            className: data.class_name,
+            studentCount: data.student_count,
+            studentsCount: data.students?.length ?? 0,
+            students: data.students
+          });
+          
+          // 요청한 classId와 응답의 classId가 일치하는지 확인
+          if (data.class_id && data.class_id !== classId) {
+            console.error('경고: 요청한 classId와 응답의 classId가 다릅니다!', {
+              requested: classId,
+              received: data.class_id
+            });
+          }
+          
           setStudents(data.students ?? []);
+          // student_count가 0이지만 students 배열에 데이터가 있으면 students.length 사용
+          const actualStudentCount = data.student_count > 0 
+            ? data.student_count 
+            : (data.students?.length ?? 0);
+          
           setClassInfo({
             className: data.class_name ?? '',
-            studentCount: data.student_count ?? 0
+            studentCount: actualStudentCount
           });
         } else {
           const errorMessage = json?.message ?? '학생 목록을 불러오지 못했습니다.';
@@ -95,7 +151,7 @@ export function StudentListPage() {
       }
     };
     fetchStudents();
-  }, [id, locationState, user]);
+  }, [urlClassId, locationState, user, navigate]);
 
 
 
@@ -155,6 +211,7 @@ export function StudentListPage() {
                   pendingQuests={student.pending_quests}
                   coral={student.coral ?? 0}
                   research_data={student.research_data ?? 0}
+                  classId={urlClassId ? Number(urlClassId) : undefined}
                 />
               ))}
             </div>

@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import { useNavigate, useLocation } from "react-router-dom";
 import { get, post } from "../../utils/api";
+import { useAuth } from "../../contexts/AppContext";
 
 interface ClassSummary {
   class_id: number;
@@ -45,7 +46,11 @@ export function RaidCreatePageNew() {
   const navigate = useNavigate();
   const location = useLocation();
   const locationState = location.state as { classId?: number } | null;
-  const [selectedClass, setSelectedClass] = useState<number | null>(locationState?.classId ?? null);
+  const { currentClassId } = useAuth();
+  // 우선순위: location.state > currentClassId (전역 상태)
+  const [selectedClass, setSelectedClass] = useState<number | null>(
+    locationState?.classId ?? (currentClassId ? Number(currentClassId) : null)
+  );
   const [classList, setClassList] = useState<ClassSummary[]>([]);
   const [creationInfo, setCreationInfo] = useState<RaidCreationInfo | null>(null);
   const [loading, setLoading] = useState(false);
@@ -78,12 +83,13 @@ export function RaidCreatePageNew() {
           const classes = json.data.classes || [];
           setClassList(classes);
           
-          // location.state에서 classId를 받지 못했고, 반 목록이 있으면 첫 번째 반 선택
-          if (!selectedClass && classes.length > 0) {
-            const firstClass = classes[0];
-            const classId = firstClass.class_id ?? firstClass.classId;
-            console.log('첫 번째 반 선택:', classId, firstClass); // 디버깅용
-            setSelectedClass(classId);
+          // location.state나 currentClassId가 없고, 반 목록이 있으면 currentClassId 사용
+          if (!selectedClass && currentClassId) {
+            const classId = Number(currentClassId);
+            if (!isNaN(classId)) {
+              console.log('currentClassId에서 반 선택:', classId); // 디버깅용
+              setSelectedClass(classId);
+            }
           } else if (classes.length === 0) {
             setError('생성된 반이 없습니다. 먼저 반을 생성해주세요.');
           }

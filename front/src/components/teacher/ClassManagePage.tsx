@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { Card, CardContent } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
@@ -8,6 +8,7 @@ import { Plus, Users, Copy, Sword } from "lucide-react";
 import { Progress } from "../ui/progress";
 import { SectionCard } from "../common/SectionCard";
 import { get, post } from "../../utils/api";
+import { useAuth } from "../../contexts/AppContext";
 
 interface ClassSummaryOption {
   id: number;
@@ -51,13 +52,18 @@ interface ClassDetail {
 export function ClassManagePage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { classId: urlClassId } = useParams<{ classId?: string }>();
   const locationState = location.state as { classId?: number } | null;
+  const { currentClassId, setCurrentClass } = useAuth();
 
   const [isRaidModalOpen, setIsRaidModalOpen] = useState(false);
   const [classListLoading, setClassListLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedClassId, setSelectedClassId] = useState<number | null>(locationState?.classId ?? null);
+  // URL 파라미터 > currentClassId (전역 상태) > location.state 순서로 우선순위 설정
+  const [selectedClassId, setSelectedClassId] = useState<number | null>(
+    urlClassId ? Number(urlClassId) : (currentClassId ? Number(currentClassId) : (locationState?.classId ?? null))
+  );
   const [classDetail, setClassDetail] = useState<ClassDetail | null>(null);
   const [raidActionMessage, setRaidActionMessage] = useState<string | null>(null);
   const [isTerminating, setIsTerminating] = useState(false);
@@ -66,9 +72,84 @@ export function ClassManagePage() {
   const activeRaid = classDetail?.ongoingRaid ?? null;
   const isActiveRaid = activeRaid?.status === 'ACTIVE';
 
+  // URL 파라미터가 변경되면 selectedClassId 업데이트 (최우선)
   useEffect(() => {
-    // location.state에서 classId를 받지 못했으면 첫 번째 반 가져오기
+    if (urlClassId) {
+      const parsedClassId = Number(urlClassId);
+      if (!isNaN(parsedClassId)) {
+        // 숫자로 변환 가능하면 숫자 ID 사용
+        if (parsedClassId !== selectedClassId) {
+          setSelectedClassId(parsedClassId);
+          // 전역 상태에도 저장
+          if (setCurrentClass) {
+            setCurrentClass(String(parsedClassId));
+          }
+        }
+      } else {
+        // 숫자가 아니면 반 이름으로 간주하고 반 목록에서 찾기
+        const findClassByName = async () => {
+          try {
+            const response = await get('/api/v1/classes');
+            const json = await response.json();
+            if (response.ok && json.data?.classes?.length > 0) {
+              const foundClass = json.data.classes.find(
+                (c: any) => c.class_name === urlClassId || c.className === urlClassId
+              );
+              if (foundClass) {
+                const classId = foundClass.class_id ?? foundClass.classId;
+                setSelectedClassId(classId);
+                // 전역 상태에도 저장
+                if (setCurrentClass) {
+                  setCurrentClass(String(classId));
+                }
+                // URL도 숫자 ID로 업데이트
+                navigate(`/teacher/class/${classId}`, { replace: true });
+              } else {
+                setError(`반 "${urlClassId}"을 찾을 수 없습니다.`);
+              }
+            }
+          } catch (err: any) {
+            console.error('반 목록 조회 실패:', err);
+            setError('반 정보를 불러오지 못했습니다.');
+          }
+        };
+        findClassByName();
+      }
+    } else if (currentClassId && !selectedClassId) {
+      // URL 파라미터가 없고 currentClassId가 있으면 그것을 사용
+      const parsedClassId = Number(currentClassId);
+      if (!isNaN(parsedClassId)) {
+        setSelectedClassId(parsedClassId);
+        navigate(`/teacher/class/${parsedClassId}`, { replace: true });
+      }
+    }
+  }, [urlClassId, selectedClassId, currentClassId, navigate, setCurrentClass]);
+
+  // selectedClassId가 변경되면 URL도 업데이트 (URL 파라미터와 다를 때만)
+  useEffect(() => {
+    if (selectedClassId) {
+      const currentUrlClassId = urlClassId ? Number(urlClassId) : null;
+      if (currentUrlClassId !== selectedClassId) {
+        navigate(`/teacher/class/${selectedClassId}`, { replace: true });
+      }
+    }
+  }, [selectedClassId, urlClassId, navigate]);
+
+  useEffect(() => {
+    // URL 파라미터나 location.state, currentClassId에서 classId를 받지 못했으면 첫 번째 반 가져오기
     if (!selectedClassId) {
+      // currentClassId가 있으면 그것을 사용
+      if (currentClassId) {
+        const parsedClassId = Number(currentClassId);
+        if (!isNaN(parsedClassId)) {
+          setSelectedClassId(parsedClassId);
+          navigate(`/teacher/class/${parsedClassId}`, { replace: true });
+          setClassListLoading(false);
+          return;
+        }
+      }
+      
+      // currentClassId도 없으면 첫 번째 반 가져오기
       const fetchFirstClass = async () => {
         setClassListLoading(true);
         try {
@@ -76,7 +157,13 @@ export function ClassManagePage() {
           const json = await response.json();
           if (response.ok && json.data?.classes?.length > 0) {
             const firstClass = json.data.classes[0];
-            setSelectedClassId(firstClass.class_id ?? firstClass.classId);
+            const firstClassId = firstClass.class_id ?? firstClass.classId;
+            setSelectedClassId(firstClassId);
+            // 전역 상태에도 저장
+            if (setCurrentClass) {
+              setCurrentClass(String(firstClassId));
+            }
+            // URL 업데이트는 위의 useEffect에서 처리됨
           }
         } catch (err: any) {
           setError(err.message ?? '반 정보를 불러오지 못했습니다.');
@@ -88,7 +175,7 @@ export function ClassManagePage() {
     } else {
       setClassListLoading(false);
     }
-  }, []);
+  }, [selectedClassId, currentClassId, navigate, setCurrentClass]);
 
   const loadClassDetail = useCallback(async (classId: number) => {
     setDetailLoading(true);
@@ -255,7 +342,32 @@ export function ClassManagePage() {
             <Button 
               className="border-2 border-gray-300 rounded-lg hover:bg-gray-100"
               variant="outline"
-              onClick={() => navigate('/teacher/students')}
+              onClick={() => {
+                // 우선순위: classDetail.classId > selectedClassId > currentClassId
+                // classDetail이 가장 정확한 현재 선택된 반 정보
+                const classIdToUse = classDetail?.classId 
+                  ?? selectedClassId 
+                  ?? (currentClassId ? Number(currentClassId) : null);
+                
+                console.log('학생 목록 조회 버튼 클릭:', {
+                  classDetailClassId: classDetail?.classId,
+                  selectedClassId,
+                  currentClassId,
+                  urlClassId,
+                  classIdToUse,
+                  className: classDetail?.className
+                });
+                
+                if (classIdToUse) {
+                  console.log('학생 목록 페이지로 이동:', `/teacher/students/${classIdToUse}`);
+                  navigate(`/teacher/students/${classIdToUse}`);
+                } else {
+                  console.error('classId가 없습니다. 반 관리 페이지로 리다이렉트');
+                  // classId가 없으면 반 관리 페이지로 리다이렉트
+                  navigate('/teacher/class');
+                }
+              }}
+              disabled={!classDetail?.classId && !selectedClassId && !currentClassId}
             >
               <Users className="w-4 h-4 mr-2" />
               학생 목록 조회

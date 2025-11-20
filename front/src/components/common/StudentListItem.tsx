@@ -1,4 +1,5 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "../ui/card";
 import { Avatar, AvatarFallback } from "../ui/avatar";
 import { Badge } from "../ui/badge";
@@ -11,6 +12,7 @@ interface StudentListItemProps {
   coral: number;
   research_data: number;
   className?: string;
+  classId?: number | string;
 }
 
 function StudentListItemInner({ 
@@ -20,11 +22,23 @@ function StudentListItemInner({
   pendingQuests, 
   coral, 
   research_data, 
-  className = ""
+  className = "",
+  classId
 }: StudentListItemProps) {
+  const navigate = useNavigate();
+  
+  const handleClick = () => {
+    if (classId) {
+      navigate(`/teacher/students/${classId}/${id}`);
+    } else {
+      navigate(`/teacher/students/${id}`);
+    }
+  };
+  
   return (
     <Card 
-      className={`border-2 border-gray-300 rounded-lg cursor-default ${className}`}
+      className={`border-2 border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors ${className}`}
+      onClick={handleClick}
     >
       <CardContent className="p-4">
         <div className="flex items-start gap-3 mb-4">

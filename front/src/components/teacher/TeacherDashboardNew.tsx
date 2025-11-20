@@ -17,7 +17,7 @@ interface ClassSummary {
 export function TeacherDashboardNew() {
   const navigate = useNavigate();
 
-  const { user, isAuthenticated, userType } = useAuth();
+  const { user, isAuthenticated, userType, setCurrentClass } = useAuth();
   const [classes, setClasses] = useState<ClassSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -128,7 +128,14 @@ export function TeacherDashboardNew() {
                   class_name={classItem.class_name}
                   student_count={classItem.student_count}
                   waiting_quest_count={classItem.waiting_quest_count}
-                  onClick={() => navigate('/teacher/class', { state: { classId: Number(classItem.class_id) } })}
+                  onClick={() => {
+                    const classId = String(classItem.class_id);
+                    // 전역 상태에 클래스 저장
+                    if (setCurrentClass) {
+                      setCurrentClass(classId);
+                    }
+                    navigate(`/teacher/class/${classItem.class_id}`);
+                  }}
                 />
               </div>
             ))}

@@ -156,11 +156,11 @@ export const AppRoutes: React.FC = () => {
           <Route path="raid/manage" element={<RaidManagePage />} />
 
           {/* Teacher Class Routes */}
-          <Route path="class" element={<ClassManagePage />} />
+          <Route path="class/:classId?" element={<ClassManagePage />} />
           <Route path="class/create" element={<ClassCreatePage />} />
           <Route path="class/:classId/dashboard" element={<ClassActivityDashboard />} />
-          <Route path="students" element={<StudentListPage />} />
-          <Route path="students/:id" element={<StudentDetailPage />} />
+          <Route path="students/:classId?" element={<StudentListPage />} />
+          <Route path="students/:classId/:id" element={<StudentDetailPage />} />
 
           {/* Teacher Profile */}
           <Route path="profile" element={<TeacherProfilePage />} />
