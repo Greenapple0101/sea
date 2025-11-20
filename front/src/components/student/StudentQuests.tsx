@@ -507,17 +507,17 @@ export function StudentQuests() {
 
       {/* 하단 획득 현황 */}
       <Card className="border-2 border-gray-300 mt-6" style={{ borderStyle: 'inset', borderWidth: '2px', marginBottom: '20px' }}>
-        <CardHeader className="text-center justify-items-center">
-          <CardTitle className="text-black text-center w-full">총 획득 현황</CardTitle>
+        <CardHeader className="flex justify-center items-center pb-4">
+          <CardTitle className="text-black text-center">총 획득 현황</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 gap-4 text-center">
-            <div className="p-3 border border-gray-200 rounded" style={{ borderStyle: 'inset', borderWidth: '2px', backgroundColor: '#f0f0f0' }}>
-              <p className="text-sm text-gray-600">획득한 코랄</p>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="p-3 border border-gray-200 rounded text-center" style={{ borderStyle: 'inset', borderWidth: '2px', backgroundColor: '#f0f0f0' }}>
+              <p className="text-sm text-gray-600 mb-1">획득한 코랄</p>
               <p className="text-xl font-medium text-black">{currentUser.total_earned_coral ?? 0}</p>
             </div>
-            <div className="p-3 border border-gray-200 rounded" style={{ borderStyle: 'inset', borderWidth: '2px', backgroundColor: '#f0f0f0' }}>
-              <p className="text-sm text-gray-600">획득한 탐사데이터</p>
+            <div className="p-3 border border-gray-200 rounded text-center" style={{ borderStyle: 'inset', borderWidth: '2px', backgroundColor: '#f0f0f0' }}>
+              <p className="text-sm text-gray-600 mb-1">획득한 탐사데이터</p>
               <p className="text-xl font-medium text-black">{currentUser.total_earned_research_data ?? 0}</p>
             </div>
           </div>
