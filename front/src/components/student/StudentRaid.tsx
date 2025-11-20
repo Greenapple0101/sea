@@ -273,13 +273,13 @@ export function StudentRaid() {
   return (
     <div className="p-4 space-y-4 bg-white" style={{ writingMode: 'horizontal-tb' }}>
       <Card className="border-2 border-gray-300">
-        <CardHeader className="text-center pb-4" style={{ writingMode: 'horizontal-tb', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-          <CardTitle className="text-black text-xl mb-3 whitespace-normal" style={{ writingMode: 'horizontal-tb', display: 'block', width: '100%', textAlign: 'center' }}>{raidData.raid_name}</CardTitle>
-          <div className="flex justify-center items-center gap-2 text-sm mb-2" style={{ writingMode: 'horizontal-tb', width: '100%' }}>
+        <CardHeader className="pb-4" style={{ writingMode: 'horizontal-tb', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', width: '100%' }}>
+          <CardTitle className="text-black text-xl mb-3 whitespace-normal" style={{ writingMode: 'horizontal-tb', textAlign: 'center', width: '100%' }}>{raidData.raid_name}</CardTitle>
+          <div className="flex justify-center items-center gap-2 text-sm mb-2" style={{ writingMode: 'horizontal-tb' }}>
             <span className="text-gray-600 whitespace-nowrap">남은 시간</span>
             <span className="text-black font-medium whitespace-nowrap">{formatRemainingTime}</span>
           </div>
-          <div className="text-xs text-gray-500 mt-2 whitespace-normal text-center" style={{ writingMode: 'horizontal-tb', width: '100%' }}>
+          <div className="text-xs text-gray-500 mt-2 whitespace-normal" style={{ writingMode: 'horizontal-tb', textAlign: 'center' }}>
             상태: {raidData.status === 'ACTIVE' ? '진행중' : '종료됨'}
           </div>
         </CardHeader>
