@@ -273,13 +273,13 @@ export function StudentRaid() {
   return (
     <div className="p-4 space-y-4 bg-white">
       <Card className="border-2 border-gray-300">
-        <CardHeader className="text-center">
-          <CardTitle className="text-black">{raidData.raid_name}</CardTitle>
-          <div className="flex justify-between text-sm">
+        <CardHeader className="text-center pb-4">
+          <CardTitle className="text-black text-xl mb-3">{raidData.raid_name}</CardTitle>
+          <div className="flex justify-between items-center text-sm mb-2">
             <span className="text-gray-600">남은 시간</span>
-            <span className="text-black font-medium">{formatRemainingTime}</span>
+            <span className="text-black font-medium whitespace-nowrap">{formatRemainingTime}</span>
           </div>
-          <div className="text-xs text-gray-500 mt-1">
+          <div className="text-xs text-gray-500 mt-2">
             상태: {raidData.status === 'ACTIVE' ? '진행중' : '종료됨'}
           </div>
         </CardHeader>
@@ -314,17 +314,17 @@ export function StudentRaid() {
       </Card>
 
       <Card className="border-2 border-gray-300">
-        <CardHeader>
+        <CardHeader className="pb-4">
           <CardTitle className="text-black text-center">개인 기여</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="text-center p-3 border border-gray-200 rounded">
-              <p className="text-sm text-gray-600">보유 탐사데이터</p>
+              <p className="text-sm text-gray-600 mb-2">보유 탐사데이터</p>
               <p className="text-xl font-medium text-black">{raidData.remaining_research_data}</p>
             </div>
             <div className="text-center p-3 border border-gray-200 rounded">
-              <p className="text-sm text-gray-600">나의 총 기여</p>
+              <p className="text-sm text-gray-600 mb-2">나의 총 기여</p>
               <p className="text-xl font-medium text-black">{raidData.my_total_contribution}</p>
             </div>
           </div>
@@ -342,17 +342,21 @@ export function StudentRaid() {
       </Card>
 
       <Card className="border-2 border-gray-300">
-        <CardHeader>
+        <CardHeader className="pb-4">
           <CardTitle className="text-black text-center">레이드 완료 보상</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-2 gap-4">
           <div className="text-center p-3 border border-gray-200 rounded">
-            <p className="text-sm text-gray-600 mb-1">코랄</p>
+            <p className="text-sm text-gray-600 mb-2">코랄</p>
             <p className="text-lg font-medium text-black">{raidData.reward_coral}</p>
+          </div>
+          <div className="text-center p-3 border border-gray-200 rounded">
+            <p className="text-sm text-gray-600 mb-2">탐사데이터</p>
+            <p className="text-lg font-medium text-black">{raidData.reward_research_data}</p>
           </div>
           {raidData.special_reward_description && (
             <div className="col-span-2 text-center p-3 border border-gray-200 rounded">
-              <p className="text-sm text-gray-600 mb-1">특별 보상</p>
+              <p className="text-sm text-gray-600 mb-2">특별 보상</p>
               <p className="text-lg font-medium text-black">{raidData.special_reward_description}</p>
             </div>
           )}
@@ -360,33 +364,51 @@ export function StudentRaid() {
       </Card>
 
       <Card className="border-2 border-gray-300">
-        <CardHeader>
-          <CardTitle className="text-black">레이드 로그</CardTitle>
+        <CardHeader className="pb-4">
+          <CardTitle className="text-black text-center">레이드 로그</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="max-h-64 overflow-y-auto space-y-3 border-2 border-gray-300 rounded-lg p-3">
             {logs.length === 0 && (
               <p className="text-sm text-gray-500 text-center">아직 활동 로그가 없습니다.</p>
             )}
-            {logs.map((log) => (
-              <div
-                key={`${log.created_at}-${log.student_name ?? log.type}`}
-                className="bg-gray-50 border-l-4 border-gray-400 p-3 rounded-r"
-              >
-                <div className="flex justify-between items-center">
-                  <div className="flex flex-col text-sm text-black">
-                    <span className="font-medium">
-                      {log.type === 'ATTACK_LOG'
-                        ? `${log.student_name ?? '알 수 없음'}님이 ${log.damage_amount ?? 0} 데미지를 입혔습니다.`
-                        : log.message ?? '시스템 알림'}
+            {logs.map((log) => {
+              let timeString = '알 수 없음';
+              try {
+                if (log.created_at) {
+                  const date = new Date(log.created_at);
+                  if (!isNaN(date.getTime())) {
+                    timeString = date.toLocaleTimeString('ko-KR', { 
+                      hour: '2-digit', 
+                      minute: '2-digit',
+                      hour12: false
+                    });
+                  }
+                }
+              } catch (err) {
+                console.error('날짜 파싱 실패:', log.created_at, err);
+              }
+              
+              return (
+                <div
+                  key={`${log.created_at}-${log.student_name ?? log.type}-${log.log_id ?? Math.random()}`}
+                  className="bg-gray-50 border-l-4 border-gray-400 p-3 rounded-r"
+                >
+                  <div className="flex justify-between items-start gap-3">
+                    <div className="flex-1 text-sm text-black">
+                      <span className="font-medium whitespace-normal">
+                        {log.type === 'ATTACK_LOG'
+                          ? `${log.student_name ?? '알 수 없음'}님이 ${log.damage_amount ?? 0} 데미지를 입혔습니다.`
+                          : log.message ?? '시스템 알림'}
+                      </span>
+                    </div>
+                    <span className="text-xs text-gray-600 bg-gray-200 px-2 py-1 rounded whitespace-nowrap flex-shrink-0">
+                      {timeString}
                     </span>
                   </div>
-                  <span className="text-xs text-gray-600 bg-gray-200 px-2 py-1 rounded">
-                    {new Date(log.created_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
-                  </span>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </CardContent>
       </Card>
