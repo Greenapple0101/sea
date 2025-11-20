@@ -507,9 +507,9 @@ export function StudentQuests() {
 
       {/* 하단 획득 현황 */}
       <Card className="border-2 border-gray-300 mt-6" style={{ borderStyle: 'inset', borderWidth: '2px', marginBottom: '20px' }}>
-        <CardHeader className="flex justify-center items-center pb-4">
-          <CardTitle className="text-black text-center">총 획득 현황</CardTitle>
-        </CardHeader>
+        <div className="flex justify-center items-center pb-4 px-6 pt-6" style={{ writingMode: 'horizontal-tb', display: 'flex', flexDirection: 'column' }}>
+          <CardTitle className="text-black text-center whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>총 획득 현황</CardTitle>
+        </div>
         <CardContent>
           <div className="grid grid-cols-2 gap-4">
             <div className="p-3 border border-gray-200 rounded text-center" style={{ borderStyle: 'inset', borderWidth: '2px', backgroundColor: '#f0f0f0' }}>
@@ -526,11 +526,11 @@ export function StudentQuests() {
 
       {/* 세부정보 모달 */}
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-        <DialogContent className="bg-white border-2 border-gray-300">
-          <DialogHeader>
-            <DialogTitle className="text-black">{selectedQuest?.title}</DialogTitle>
+        <DialogContent className="bg-white border-2 border-gray-300" style={{ writingMode: 'horizontal-tb' }}>
+          <DialogHeader style={{ writingMode: 'horizontal-tb' }}>
+            <DialogTitle className="text-black whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>{selectedQuest?.title}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4" style={{ writingMode: 'horizontal-tb' }}>
             <p className="text-black">{selectedQuest?.teacher_content || '설명이 없습니다.'}</p>
             <div className="flex justify-between">
               <span className="text-gray-600">보상:</span>
@@ -548,9 +548,9 @@ export function StudentQuests() {
 
       {/* 승인완료된 퀘스트 모달 */}
       <Dialog open={isCompletedModalOpen} onOpenChange={setIsCompletedModalOpen}>
-        <DialogContent className="bg-white border-2 border-gray-300 max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-black">승인완료된 퀘스트들</DialogTitle>
+        <DialogContent className="bg-white border-2 border-gray-300 max-w-2xl max-h-[80vh] overflow-y-auto" style={{ writingMode: 'horizontal-tb' }}>
+          <DialogHeader style={{ writingMode: 'horizontal-tb' }}>
+            <DialogTitle className="text-black whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>승인완료된 퀘스트들</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             {approvedQuests.length === 0 ? (
@@ -608,9 +608,9 @@ export function StudentQuests() {
 
       {/* 마감된 퀘스트 모달 */}
       <Dialog open={isExpiredModalOpen} onOpenChange={setIsExpiredModalOpen}>
-        <DialogContent className="bg-white border-2 border-gray-300 max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-black">마감지난 퀘스트들</DialogTitle>
+        <DialogContent className="bg-white border-2 border-gray-300 max-w-2xl max-h-[80vh] overflow-y-auto" style={{ writingMode: 'horizontal-tb' }}>
+          <DialogHeader style={{ writingMode: 'horizontal-tb' }}>
+            <DialogTitle className="text-black whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>마감지난 퀘스트들</DialogTitle>
           </DialogHeader>
           <div className="space-y-2 max-h-60 overflow-y-auto">
             {expiredQuests.length === 0 ? (
@@ -637,9 +637,9 @@ export function StudentQuests() {
 
       {/* 선생님 코멘트 모달 */}
       <Dialog open={isCommentOpen} onOpenChange={setIsCommentOpen}>
-        <DialogContent className="bg-white border-2 border-gray-300">
-          <DialogHeader>
-            <DialogTitle className="text-black">선생님 코멘트</DialogTitle>
+        <DialogContent className="bg-white border-2 border-gray-300" style={{ writingMode: 'horizontal-tb' }}>
+          <DialogHeader style={{ writingMode: 'horizontal-tb' }}>
+            <DialogTitle className="text-black whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>선생님 코멘트</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
@@ -668,9 +668,9 @@ export function StudentQuests() {
 
       {/* 제출 모달 */}
       <Dialog open={isSubmitOpen} onOpenChange={(isOpen: Boolean) => { if (!isOpen) setIsSubmitOpen(false); }}>
-        <DialogContent className="bg-white border-2 border-gray-300 max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-black">{selectedQuest?.title}</DialogTitle>
+        <DialogContent className="bg-white border-2 border-gray-300 max-w-md" style={{ writingMode: 'horizontal-tb' }}>
+          <DialogHeader style={{ writingMode: 'horizontal-tb' }}>
+            <DialogTitle className="text-black whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>{selectedQuest?.title}</DialogTitle>
           </DialogHeader>
           <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="space-y-3" style={{ writingMode: 'horizontal-tb' }}>
             <p className="text-sm text-gray-700 whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>
