@@ -470,8 +470,8 @@ export function StudentQuests() {
                     </div>
 
                     <div className="flex items-center space-x-4 text-sm">
-                      <span className="text-black font-semibold"><span className="text-blue-600">C</span> {quest.reward_coral_personal}</span>
-                      <span className="text-black font-semibold"><span className="text-purple-600">R</span> {quest.reward_research_data_personal}</span>
+                      <span className="text-black font-semibold"><span className="text-blue-600">코랄</span> {quest.reward_coral_personal}</span>
+                      <span className="text-black font-semibold"><span className="text-purple-600">탐사데이터</span> {quest.reward_research_data_personal}</span>
                     </div>
 
                     {quest.teacher_content && (
@@ -585,8 +585,8 @@ export function StudentQuests() {
                         </div>
 
                         <div className="flex items-center space-x-4 text-sm">
-                          <span className="text-black font-semibold"><span className="text-blue-600">C</span> {quest.reward_coral_personal}</span>
-                          <span className="text-black font-semibold"><span className="text-purple-600">R</span> {quest.reward_research_data_personal}</span>
+                          <span className="text-black font-semibold"><span className="text-blue-600">코랄</span> {quest.reward_coral_personal}</span>
+                          <span className="text-black font-semibold"><span className="text-purple-600">탐사데이터</span> {quest.reward_research_data_personal}</span>
                         </div>
                       </div>
                     </div>
