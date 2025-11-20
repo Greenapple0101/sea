@@ -273,13 +273,13 @@ export function StudentRaid() {
   return (
     <div className="p-4 space-y-4 bg-white" style={{ writingMode: 'horizontal-tb' }}>
       <Card className="border-2 border-gray-300">
-        <CardHeader className="text-center pb-4" style={{ writingMode: 'horizontal-tb', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <CardTitle className="text-black text-xl mb-3 whitespace-normal" style={{ writingMode: 'horizontal-tb', display: 'block', width: '100%' }}>{raidData.raid_name}</CardTitle>
-          <div className="flex justify-between items-center text-sm mb-2" style={{ writingMode: 'horizontal-tb' }}>
+        <CardHeader className="text-center pb-4" style={{ writingMode: 'horizontal-tb', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+          <CardTitle className="text-black text-xl mb-3 whitespace-normal" style={{ writingMode: 'horizontal-tb', display: 'block', width: '100%', textAlign: 'center' }}>{raidData.raid_name}</CardTitle>
+          <div className="flex justify-center items-center gap-2 text-sm mb-2" style={{ writingMode: 'horizontal-tb', width: '100%' }}>
             <span className="text-gray-600 whitespace-nowrap">남은 시간</span>
             <span className="text-black font-medium whitespace-nowrap">{formatRemainingTime}</span>
           </div>
-          <div className="text-xs text-gray-500 mt-2 whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>
+          <div className="text-xs text-gray-500 mt-2 whitespace-normal text-center" style={{ writingMode: 'horizontal-tb', width: '100%' }}>
             상태: {raidData.status === 'ACTIVE' ? '진행중' : '종료됨'}
           </div>
         </CardHeader>
@@ -321,11 +321,11 @@ export function StudentRaid() {
           <div className="grid grid-cols-2 gap-4" style={{ writingMode: 'horizontal-tb' }}>
             <div className="text-center p-3 border border-gray-200 rounded" style={{ writingMode: 'horizontal-tb' }}>
               <p className="text-sm text-gray-600 mb-2 whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>보유 탐사데이터</p>
-              <p className="text-xl font-medium text-black">{raidData.remaining_research_data}</p>
+              <p className="text-xl font-medium text-black whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>{raidData.remaining_research_data}</p>
             </div>
             <div className="text-center p-3 border border-gray-200 rounded" style={{ writingMode: 'horizontal-tb' }}>
               <p className="text-sm text-gray-600 mb-2 whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>나의 총 기여</p>
-              <p className="text-xl font-medium text-black">{raidData.my_total_contribution}</p>
+              <p className="text-xl font-medium text-black whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>{raidData.my_total_contribution}</p>
             </div>
           </div>
 
@@ -349,11 +349,11 @@ export function StudentRaid() {
         <CardContent className="grid grid-cols-2 gap-4" style={{ writingMode: 'horizontal-tb' }}>
           <div className="text-center p-3 border border-gray-200 rounded" style={{ writingMode: 'horizontal-tb' }}>
             <p className="text-sm text-gray-600 mb-2 whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>코랄</p>
-            <p className="text-lg font-medium text-black">{raidData.reward_coral}</p>
+            <p className="text-lg font-medium text-black whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>{raidData.reward_coral}</p>
           </div>
           <div className="text-center p-3 border border-gray-200 rounded" style={{ writingMode: 'horizontal-tb' }}>
             <p className="text-sm text-gray-600 mb-2 whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>탐사데이터</p>
-            <p className="text-lg font-medium text-black">{raidData.reward_research_data}</p>
+            <p className="text-lg font-medium text-black whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>{raidData.reward_research_data}</p>
           </div>
           {raidData.special_reward_description && (
             <div className="col-span-2 text-center p-3 border border-gray-200 rounded" style={{ writingMode: 'horizontal-tb' }}>
@@ -416,13 +416,13 @@ export function StudentRaid() {
       </Card>
 
       <Dialog open={isContributeOpen} onOpenChange={setIsContributeOpen}>
-        <DialogContent className="bg-white border-2 border-gray-300">
-          <DialogHeader>
-            <DialogTitle className="text-black">에너지 주입</DialogTitle>
+        <DialogContent className="bg-white border-2 border-gray-300" style={{ writingMode: 'horizontal-tb' }}>
+          <DialogHeader style={{ writingMode: 'horizontal-tb' }}>
+            <DialogTitle className="text-black whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>에너지 주입</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <p className="text-sm text-gray-600 mb-2">
+          <div className="space-y-4" style={{ writingMode: 'horizontal-tb' }}>
+            <div style={{ writingMode: 'horizontal-tb' }}>
+              <p className="text-sm text-gray-600 mb-2 whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>
                 보유 탐사데이터: {raidData.remaining_research_data}
               </p>
               <input
@@ -433,10 +433,11 @@ export function StudentRaid() {
                 min={1}
                 className="w-full p-3 border border-gray-300 rounded bg-white text-black"
                 placeholder="기여할 양을 입력하세요"
+                style={{ writingMode: 'horizontal-tb' }}
               />
             </div>
 
-            <div className="flex space-x-2">
+            <div className="flex space-x-2" style={{ writingMode: 'horizontal-tb' }}>
               <Button
                 onClick={handleOpenDiceModal}
                 className="flex-1 bg-black text-white"
@@ -445,12 +446,14 @@ export function StudentRaid() {
                   contributeAmount > raidData.remaining_research_data ||
                   raidData.status !== 'ACTIVE'
                 }
+                style={{ writingMode: 'horizontal-tb' }}
               >
                 기여하기
               </Button>
               <Button
                 onClick={() => setIsContributeOpen(false)}
                 className="flex-1 bg-white text-black border border-gray-300"
+                style={{ writingMode: 'horizontal-tb' }}
               >
                 취소
               </Button>
@@ -464,32 +467,34 @@ export function StudentRaid() {
           resetDiceModal();
         }
       }}>
-        <DialogContent className="bg-white border-2 border-gray-300">
-          <DialogHeader>
-            <DialogTitle className="text-black">주사위 보너스</DialogTitle>
+        <DialogContent className="bg-white border-2 border-gray-300" style={{ writingMode: 'horizontal-tb' }}>
+          <DialogHeader style={{ writingMode: 'horizontal-tb' }}>
+            <DialogTitle className="text-black whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>주사위 보너스</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 text-center">
-            <p className="text-sm text-gray-600">
+          <div className="space-y-4 text-center" style={{ writingMode: 'horizontal-tb' }}>
+            <p className="text-sm text-gray-600 whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>
               투입 에너지: <span className="font-semibold text-black">{pendingContribution ?? 0}</span>
             </p>
-            <div className="w-24 h-24 mx-auto border-2 border-gray-300 rounded-lg flex items-center justify-center text-3xl font-bold text-black bg-gray-100">
+            <div className="w-24 h-24 mx-auto border-2 border-gray-300 rounded-lg flex items-center justify-center text-3xl font-bold text-black bg-gray-100" style={{ writingMode: 'horizontal-tb' }}>
               {diceResult ?? (isRolling ? '...' : '?')}
             </div>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-gray-600 whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>
               주사위 눈금만큼 추가 피해가 적용됩니다.
             </p>
             <Button
               onClick={rollDice}
               className="w-full bg-black text-white"
               disabled={isRolling || diceResult !== null}
+              style={{ writingMode: 'horizontal-tb' }}
             >
               {isRolling ? '굴리는 중...' : diceResult ? '주사위 완료' : '주사위 굴리기'}
             </Button>
-            <div className="flex space-x-2">
+            <div className="flex space-x-2" style={{ writingMode: 'horizontal-tb' }}>
               <Button
                 onClick={handleConfirmContribution}
                 className="flex-1 bg-black text-white"
                 disabled={diceResult === null || isSubmitting}
+                style={{ writingMode: 'horizontal-tb' }}
               >
                 {isSubmitting ? '기여 중...' : `총 피해 ${pendingContribution !== null && diceResult !== null
                     ? pendingContribution + diceResult
@@ -500,6 +505,7 @@ export function StudentRaid() {
                 onClick={resetDiceModal}
                 className="flex-1 bg-white text-black border border-gray-300"
                 disabled={isSubmitting}
+                style={{ writingMode: 'horizontal-tb' }}
               >
                 취소
               </Button>
