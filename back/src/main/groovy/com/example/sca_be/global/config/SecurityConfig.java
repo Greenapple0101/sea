@@ -93,13 +93,19 @@ public class SecurityConfig {
                                 "/api/v1/quests/personal/my",                      // 내 개인 퀘스트 목록
                                 "/api/v1/quests/personal/{assignmentId}/submit",   // 개인 퀘스트 제출, 재제출
                                 "/api/v1/quests/personal/{assignmentId}/comment",  // 퀘스트 코멘트 조회
-                                "/api/students/**",                                // 학생 대시보드, 활동로그, 공지
+                                "/api/v1/students/**",                             // 학생 대시보드, 활동로그, 공지
                                 "/api/v1/gacha/**",                                // 가챠 정보, 뽑기
                                 "/api/v1/collection/**",                           // 수족관, 도감
                                 "/api/v1/raids/my-raid",                          // 내 레이드 조회
                                 "/api/v1/raids/{raidId}/attack",                   // 레이드 공격
-                                "/api/v1/raids/{raidId}/logs"                      // 레이드 로그 조회
+                                "/api/v1/raids/{raidId}/logs",                     // 레이드 로그 조회
+                                "/api/v1/files/upload"                             // 파일 업로드
                         ).hasRole("STUDENT")
+                        
+                        // 인증된 사용자만 접근 가능한 경로
+                        .requestMatchers(
+                                "/api/v1/files/**"                                 // 파일 다운로드
+                        ).authenticated()
 
                         // 그 외 모든 요청은 인증 필요
                         .anyRequest().authenticated()

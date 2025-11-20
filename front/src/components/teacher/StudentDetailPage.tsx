@@ -208,7 +208,6 @@ export function StudentDetailPage() {
             </CardContent>
           </Card>
         </div>
-      </div>
 
       {/* 승인 모달 */}
       <Dialog open={showApprovalModal} onOpenChange={setShowApprovalModal}>

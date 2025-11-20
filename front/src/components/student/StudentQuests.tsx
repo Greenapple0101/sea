@@ -8,6 +8,18 @@ import { Textarea } from '../ui/textarea';
 import { Input } from '../ui/input';
 import { useAuth, StudentUser } from "../../contexts/AppContext";
 import { get, post } from "../../utils/api";
+
+// API URL 헬퍼 함수 가져오기
+function getFullUrl(url: string): string {
+  const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+  if (API_BASE_URL) {
+    return `${API_BASE_URL}${url}`;
+  }
+  return url;
+}
 import { Loader2, File as FileIcon, X } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
@@ -211,36 +223,79 @@ export function StudentQuests() {
     setSubmitError(null);
 
     try {
-      const formData = new FormData();
-      formData.append('content', submitText);
+      let attachmentUrl: string | null = null;
+
+      // 파일이 있으면 먼저 업로드
       if (attachedFiles.length > 0) {
-        formData.append('attachment', attachedFiles[0]);
+        const file = attachedFiles[0];
+        const uploadFormData = new FormData();
+        uploadFormData.append('file', file);
+
+        const accessToken = localStorage.getItem('accessToken');
+        const uploadHeaders: HeadersInit = {};
+        if (accessToken) {
+          uploadHeaders['Authorization'] = `Bearer ${accessToken}`;
+        }
+
+        const uploadUrl = getFullUrl('/api/v1/files/upload');
+        const uploadResponse = await fetch(uploadUrl, {
+          method: 'POST',
+          headers: uploadHeaders,
+          body: uploadFormData,
+        });
+
+        if (!uploadResponse.ok) {
+          const uploadError = await uploadResponse.json().catch(() => ({}));
+          throw new Error(uploadError.message || '파일 업로드에 실패했습니다.');
+        }
+
+        const uploadData = await uploadResponse.json();
+        if (uploadData.success && uploadData.data?.url) {
+          attachmentUrl = uploadData.data.url;
+        } else {
+          throw new Error('파일 업로드 응답이 올바르지 않습니다.');
+        }
       }
+
+      // 퀘스트 제출
+      const requestBody = {
+        content: submitText,
+        attachment_url: attachmentUrl
+      };
 
       const method = selectedQuest.status === 'REJECTED' ? 'PUT' : 'POST';
       const endpoint = `/api/v1/quests/personal/${selectedQuest.assignment_id}/submit`;
+      const fullUrl = getFullUrl(endpoint);
 
-      // FormData를 사용하므로 Content-Type을 설정하지 않음 (브라우저가 자동으로 설정)
       const accessToken = localStorage.getItem('accessToken');
-      const headers: HeadersInit = {};
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
       if (accessToken) {
         headers['Authorization'] = `Bearer ${accessToken}`;
       }
 
-      const response = await fetch(endpoint, {
+      const response = await fetch(fullUrl, {
         method: method,
         headers: headers,
-        body: formData,
+        body: JSON.stringify(requestBody),
       });
 
-      const data = await response.json();
+      let data;
+      try {
+        const text = await response.text();
+        data = text ? JSON.parse(text) : {};
+      } catch (parseError) {
+        throw new Error('서버 응답을 파싱할 수 없습니다.');
+      }
       
       // 401 에러인 경우 토큰 갱신 후 재시도
       if (response.status === 401) {
         try {
           const refreshToken = localStorage.getItem('refreshToken');
           if (refreshToken) {
-            const refreshResponse = await fetch('/api/v1/auth/refresh', {
+            const refreshUrl = getFullUrl('/api/v1/auth/refresh');
+            const refreshResponse = await fetch(refreshUrl, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ refresh_token: refreshToken }),
@@ -254,7 +309,7 @@ export function StudentQuests() {
               }
               
               // 재시도
-              const retryResponse = await fetch(endpoint, {
+              const retryResponse = await fetch(fullUrl, {
                 method: method,
                 headers: {
                   'Authorization': `Bearer ${refreshData.data.access_token}`,
@@ -262,7 +317,14 @@ export function StudentQuests() {
                 body: formData,
               });
               
-              const retryData = await retryResponse.json();
+              let retryData;
+              try {
+                const retryText = await retryResponse.text();
+                retryData = retryText ? JSON.parse(retryText) : {};
+              } catch (parseError) {
+                throw new Error('서버 응답을 파싱할 수 없습니다.');
+              }
+              
               if (!retryResponse.ok || !retryData.success) {
                 throw new Error(retryData.message || '제출에 실패했습니다.');
               }
@@ -297,7 +359,12 @@ export function StudentQuests() {
         }
       }
 
-      if (!response.ok || !data.success) {
+      if (!response.ok) {
+        const errorMessage = data.message || data.error || `서버 오류가 발생했습니다. (${response.status})`;
+        throw new Error(errorMessage);
+      }
+      
+      if (data.success === false) {
         throw new Error(data.message || '제출에 실패했습니다.');
       }
 
@@ -318,7 +385,9 @@ export function StudentQuests() {
       // 사용자 정보 새로고침
       refreshUserInfo();
     } catch (err: any) {
-      setSubmitError(err.message ?? '퀘스트 제출에 실패했습니다.');
+      console.error('Submit error:', err);
+      const errorMessage = err.message || '서버 오류가 발생했습니다.';
+      setSubmitError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -450,8 +519,8 @@ export function StudentQuests() {
 
       {/* 하단 획득 현황 */}
       <Card className="border-2 border-gray-300 mt-6" style={{ borderStyle: 'inset', borderWidth: '2px', marginBottom: '20px' }}>
-        <CardHeader>
-          <CardTitle className="text-black text-center">총 획득 현황</CardTitle>
+        <CardHeader className="text-center justify-items-center">
+          <CardTitle className="text-black text-center w-full">총 획득 현황</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-4 text-center">
@@ -611,38 +680,40 @@ export function StudentQuests() {
 
       {/* 제출 모달 */}
       <Dialog open={isSubmitOpen} onOpenChange={(isOpen: Boolean) => { if (!isOpen) setIsSubmitOpen(false); }}>
-        <DialogContent className="bg-white border-2 border-gray-300">
+        <DialogContent className="bg-white border-2 border-gray-300 max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-black">퀘스트 제출</DialogTitle>
+            <DialogTitle className="text-black">{selectedQuest?.title}</DialogTitle>
           </DialogHeader>
-          <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="space-y-4">
-            <p className="font-semibold text-black">{selectedQuest?.title}</p>
-            <p className="text-sm text-gray-600 border p-2 rounded-md bg-gray-50">
+          <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="space-y-3" style={{ writingMode: 'horizontal-tb' }}>
+            <p className="text-sm text-gray-700 whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>
               {selectedQuest?.teacher_content}
             </p>
 
             {/* 반려된 경우, 반려 사유 표시 */}
             {selectedQuest?.status === 'REJECTED' && (
-              <Alert variant="destructive">
-                <AlertTitle>반려 사유</AlertTitle>
-                <AlertDescription>
+              <div className="bg-red-50 border border-red-200 rounded p-3" style={{ writingMode: 'horizontal-tb' }}>
+                <p className="text-sm font-semibold text-red-800 mb-1">반려 사유</p>
+                <p className="text-sm text-red-700 whitespace-normal">
                   {selectedQuest.submission?.comment || selectedQuest.comment || "사유가 없습니다. 다시 제출해주세요."}
-                </AlertDescription>
-              </Alert>
+                </p>
+              </div>
             )}
 
-            <Textarea
-              value={submitText}
-              onChange={(e) => setSubmitText(e.target.value)}
-              placeholder="수행 내용을 입력하세요..."
-              className="border-gray-300 bg-white text-black"
-              rows={4}
-            />
+            <div>
+              <label className="text-sm font-medium text-black mb-1 block">수행 내용</label>
+              <Textarea
+                value={submitText}
+                onChange={(e) => setSubmitText(e.target.value)}
+                placeholder="수행 내용을 입력하세요..."
+                className="border-gray-300 bg-white text-black"
+                rows={3}
+              />
+            </div>
 
             {/* 첨부파일 섹션 */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-black">첨부파일 (10MB 이하)</label>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <label className="text-sm font-medium text-black">첨부파일</label>
                 <Input
                   type="file"
                   onChange={handleFileUpload}
@@ -653,7 +724,7 @@ export function StudentQuests() {
                 <Button
                   type="button"
                   onClick={() => document.getElementById('file-upload')?.click()}
-                  className="bg-gray-100 text-black border border-gray-300 hover:bg-gray-200"
+                  className="bg-gray-100 text-black border border-gray-300 hover:bg-gray-200 text-xs px-3 py-1 h-7"
                 >
                   파일 선택
                 </Button>
@@ -661,12 +732,12 @@ export function StudentQuests() {
 
               {/* 첨부된 파일 목록 */}
               {attachedFiles.length > 0 && (
-                <div className="space-y-2">
+                <div className="space-y-1">
                   {attachedFiles.map((file, index) => (
-                    <div key={index} className="flex items-center justify-between p-2 bg-gray-50 border border-gray-300 rounded">
-                      <div className="flex items-center space-x-2 overflow-hidden">
-                        <FileIcon className="w-5 h-5 text-gray-500 flex-shrink-0" />
-                        <span className="text-sm text-black truncate">{file.name}</span>
+                    <div key={index} className="flex items-center justify-between p-1.5 bg-gray-50 border border-gray-300 rounded text-xs">
+                      <div className="flex items-center space-x-1.5 overflow-hidden flex-1 min-w-0">
+                        <FileIcon className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                        <span className="text-xs text-black truncate">{file.name}</span>
                         <span className="text-xs text-gray-500 flex-shrink-0">
                           ({(file.size / 1024).toFixed(1)} KB)
                         </span>
@@ -674,9 +745,9 @@ export function StudentQuests() {
                       <Button
                         type="button"
                         onClick={() => handleRemoveFile(index)}
-                        className="bg-gray-100 text-black border border-gray-300 hover:bg-gray-200 p-1 h-6 w-6"
+                        className="bg-gray-100 text-black border border-gray-300 hover:bg-gray-200 p-0.5 h-5 w-5 flex-shrink-0"
                       >
-                        <X className="w-4 h-4" />
+                        <X className="w-3 h-3" />
                       </Button>
                     </div>
                   ))}
@@ -685,15 +756,15 @@ export function StudentQuests() {
             </div>
 
             {submitError && (
-              <Alert variant="destructive">
-                <AlertDescription>{submitError}</AlertDescription>
-              </Alert>
+              <div className="bg-red-50 border border-red-200 rounded p-2">
+                <p className="text-xs text-red-700">{submitError}</p>
+              </div>
             )}
 
-            <div className="flex space-x-2">
+            <div className="flex gap-2 pt-2">
               <Button
                 type="submit"
-                className="flex-1 bg-black text-white hover:bg-gray-800"
+                className="flex-1 bg-black text-white hover:bg-gray-800 h-9 text-sm"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : (selectedQuest?.status === 'REJECTED' ? '다시 제출' : '제출하기')}
@@ -701,7 +772,7 @@ export function StudentQuests() {
               <Button
                 type="button"
                 onClick={() => setIsSubmitOpen(false)}
-                className="flex-1 bg-white text-black border border-gray-300 hover:bg-gray-50"
+                className="flex-1 bg-white text-black border border-gray-300 hover:bg-gray-50 h-9 text-sm"
               >
                 취소
               </Button>

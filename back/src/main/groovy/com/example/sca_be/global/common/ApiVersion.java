@@ -14,4 +14,6 @@ public final class ApiVersion {
     public static final String CLASSES = V1 + "/classes";
 
     public static final String RAIDS = V1 + "/raids";
+
+    public static final String STUDENTS = V1 + "/students";
 }

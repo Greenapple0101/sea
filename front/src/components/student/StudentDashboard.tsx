@@ -155,7 +155,7 @@ export function StudentDashboard() {
   return (
     <div className="p-6 space-y-6 bg-gray-50 max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
       {/* 이벤트 & 공지 (맨 위) */}
-      <Card className="border-2 border-gray-300" style={{ borderStyle: 'inset', borderWidth: '2px' }}>
+      <Card className="border-2 border-gray-300">
         <CardContent className="p-4 space-y-3">
           <h3 className="font-medium text-black">이벤트 & 공지</h3>
           {eventsLoading ? (
@@ -181,7 +181,7 @@ export function StudentDashboard() {
       </Card>
 
       {/* 현재 레이드 보스 HP 요약 */}
-      <Card className="border-2 border-gray-300" style={{ borderStyle: 'inset', borderWidth: '2px' }}>
+      <Card className="border-2 border-gray-300">
         <CardContent className="p-6">
           {raidLoading ? (
             <p>레이드 정보를 불러오는 중...</p>
@@ -231,7 +231,7 @@ export function StudentDashboard() {
       </Card>
 
       {/* 단체 퀘스트 달성률 */}
-      <Card className="border-2 border-gray-300" style={{ borderStyle: 'inset', borderWidth: '2px' }}>
+      <Card className="border-2 border-gray-300">
         <CardContent className="p-4 space-y-4">
           <h3 className="font-medium text-black">현재 단체 퀘스트 달성률</h3>
           {groupQuestsLoading ? (

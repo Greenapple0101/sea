@@ -34,3 +34,6 @@ jwt:
   secret: your-secret-key-must-be-at-least-256-bits-long-for-HS256-algorithm-security
   expiration: 900000 # 15분 (milliseconds)
   refresh-expiration: 604800000 # 7일 (milliseconds)
+
+file:
+  upload-dir: uploads # 파일 업로드 디렉토리

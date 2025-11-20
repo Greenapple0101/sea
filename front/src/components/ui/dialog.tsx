@@ -96,6 +96,7 @@ function DialogContent({
             "window-body bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 gap-4 duration-200 p-6",
             className,
           )}
+          style={{ writingMode: 'horizontal-tb', ...props.style }}
           {...props}
         >
           {children}
