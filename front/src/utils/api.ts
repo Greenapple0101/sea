@@ -8,6 +8,15 @@
 // 환경변수에서 API URL 가져오기
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
+// 개발 환경에서 환경변수 로드 확인 (디버깅용)
+if (import.meta.env.DEV) {
+  console.log('🔧 개발 환경변수:', {
+    VITE_API_URL: import.meta.env.VITE_API_URL,
+    API_BASE_URL: API_BASE_URL,
+    MODE: import.meta.env.MODE
+  });
+}
+
 // URL을 완전한 경로로 변환하는 헬퍼 함수
 function getFullUrl(url: string): string {
   // 이미 전체 URL인 경우 그대로 반환
@@ -15,12 +24,19 @@ function getFullUrl(url: string): string {
     return url;
   }
   
-  // 환경변수가 설정되어 있으면 환경변수 사용, 없으면 상대 경로 유지
+  // 환경변수가 설정되어 있으면 환경변수 사용
   if (API_BASE_URL) {
     // 환경변수 사용: baseURL + 상대 경로
-    return `${API_BASE_URL}${url}`;
+    const fullUrl = `${API_BASE_URL}${url}`;
+    if (import.meta.env.DEV) {
+      console.log(`🌐 API 요청: ${url} → ${fullUrl}`);
+    }
+    return fullUrl;
   } else {
     // 환경변수가 없으면 상대 경로 그대로 사용 (Vite 프록시 또는 현재 도메인 기준)
+    if (import.meta.env.DEV) {
+      console.warn('⚠️ 환경변수 VITE_API_URL이 설정되지 않았습니다. 상대 경로 사용:', url);
+    }
     return url;
   }
 }

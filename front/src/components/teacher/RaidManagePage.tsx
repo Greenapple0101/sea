@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
-import { Sidebar } from "./Sidebar";
 import { Badge } from "../ui/badge";
 import { Progress } from "../ui/progress";
 import { get, post } from "../../utils/api";
@@ -155,9 +154,7 @@ export function RaidManagePage() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex">
-      <Sidebar />
-      <div className="flex-1 border-l-2 border-gray-300 p-6 space-y-6">
+    <div className="p-6 space-y-6">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between border-b-2 border-gray-300 pb-4">
           <div>
             <h1>레이드 관리</h1>
@@ -295,7 +292,6 @@ export function RaidManagePage() {
             </CardContent>
           </Card>
         </div>
-      </div>
     </div>
   );
 }

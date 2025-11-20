@@ -205,27 +205,27 @@ INSERT INTO group_quest_progress (group_quest_id, student_id, is_completed, comp
 
 -- 13. Raids (Raids)
 -- raid_id is auto-generated
-INSERT INTO raids (teacher_id, class_id, start_date, end_date, total_boss_hp, current_boss_hp, reward_coral, reward_research_data, special_reward_description, status, difficulty, boss_type, raid_name) VALUES
-(1, 1, '2025-11-10 00:00:00', '2025-11-20 23:59:59', 10000, 3500, 200, 80, 'Legendary grade fish acquisition opportunity', 'ACTIVE', 'HIGH', 'KRAKEN', '중간고사 대비 크라켄'),
-(2, 2, '2025-11-05 00:00:00', '2025-11-12 23:59:59', 5000, 0, 150, 60, 'Rare grade fish x3', 'COMPLETED', 'MEDIUM', 'ZELUS_INDUSTRY', '헬릭스 인더스트리 소탕전'),
-(3, 3, '2025-11-15 00:00:00', '2025-11-22 23:59:59', 3000, 2100, 100, 40, 'Common grade fish x10', 'ACTIVE', 'LOW', 'KRAKEN', '기말 대비 정찰 작전');
+INSERT INTO raids (teacher_id, class_id, start_date, end_date, total_boss_hp, current_boss_hp, reward_coral, special_reward_description, status, difficulty, boss_type, raid_name) VALUES
+(1, 1, '2025-11-10 00:00:00', '2025-11-20 23:59:59', 10000, 3500, 200, 'Legendary grade fish acquisition opportunity', 'ACTIVE', 'HIGH', 'KRAKEN', '중간고사 대비 크라켄'),
+(2, 2, '2025-11-05 00:00:00', '2025-11-12 23:59:59', 5000, 0, 150, 'Rare grade fish x3', 'COMPLETED', 'MEDIUM', 'ZELUS_INDUSTRY', '헬릭스 인더스트리 소탕전'),
+(3, 3, '2025-11-15 00:00:00', '2025-11-22 23:59:59', 3000, 2100, 100, 'Common grade fish x10', 'ACTIVE', 'LOW', 'KRAKEN', '기말 대비 정찰 작전');
 
 -- 14. Contributions (Raid Contributions)
 -- contribution_id is auto-generated
-INSERT INTO contributions (raid_id, student_id, damage, last_attack_at) VALUES
+INSERT INTO contributions (raid_id, student_id, damage) VALUES
 -- Raid 1 contributions (Grade 3 Class 1)
-(1, 4, 2000, '2025-11-15 14:00:00'),
-(1, 5, 1500, '2025-11-15 15:00:00'),
-(1, 6, 1800, '2025-11-15 16:00:00'),
-(1, 7, 1200, '2025-11-15 17:00:00'),
+(1, 4, 2000),
+(1, 5, 1500),
+(1, 6, 1800),
+(1, 7, 1200),
 -- Raid 2 contributions (Grade 2 Class 3 - Completed)
-(2, 8, 2000, '2025-11-12 10:00:00'),
-(2, 9, 1800, '2025-11-12 11:00:00'),
-(2, 10, 1200, '2025-11-12 12:00:00'),
+(2, 8, 2000),
+(2, 9, 1800),
+(2, 10, 1200),
 -- Raid 3 contributions (Grade 1 Class 2)
-(3, 11, 300, '2025-11-16 09:00:00'),
-(3, 12, 400, '2025-11-16 10:00:00'),
-(3, 13, 200, '2025-11-16 11:00:00');
+(3, 11, 300),
+(3, 12, 400),
+(3, 13, 200);
 
 -- 15. Notices (Notifications)
 -- notice_id is auto-generated

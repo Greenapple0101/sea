@@ -6,7 +6,7 @@ import { Label } from "../ui/label";
 import { Button } from "../ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useAuth, TeacherUser, StudentUser } from "../../contexts/AppContext";
-import { post } from "../../utils/api";
+import { post, get } from "../../utils/api";
 
 type FormErrors = {
   username: string | null;
@@ -16,7 +16,7 @@ type FormErrors = {
 
 export function LoginPage() {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, updateUser } = useAuth();
   const { role } = useParams<{ role: string }>();
 
   const [formData, setFormData] = useState({
@@ -98,14 +98,48 @@ export function LoginPage() {
           mainFish: '', // 로그인 응답에 없으면 빈 문자열
         };
         login(studentUser, role as 'teacher' | 'student', data.access_token, data.refresh_token);
-      } else {
-        login(data.username, role as 'teacher' | 'student', data.access_token, data.refresh_token);
-      }
-
-      if (role === 'teacher') {
-        navigate('/teacher/dashboard');
-      } else {
         navigate('/student/dashboard');
+      } else {
+        // Teacher인 경우: 먼저 기본 정보로 로그인하고, classes를 가져와서 업데이트
+        const teacherUser = {
+          id: String(data.teacher_id),
+          real_name: data.real_name,
+          nickname: data.nickname,
+          username: data.username,
+          email: data.email,
+          classes: [] as string[], // 일단 빈 배열로 시작
+        };
+        // 먼저 localStorage에 직접 저장 (동기적으로)
+        localStorage.setItem('user', JSON.stringify(teacherUser));
+        localStorage.setItem('userType', 'teacher');
+        localStorage.setItem('accessToken', data.access_token);
+        localStorage.setItem('refreshToken', data.refresh_token);
+        
+        // 그 다음 login() 함수 호출 (React 상태 업데이트)
+        login(teacherUser, role as 'teacher' | 'student', data.access_token, data.refresh_token);
+        
+        // classes 정보 가져오기 (비동기, 실패해도 계속 진행)
+        get('/api/v1/classes')
+          .then(classesResponse => {
+            if (classesResponse.ok) {
+              return classesResponse.json();
+            }
+            return null;
+          })
+          .then(classesData => {
+            if (classesData?.data?.classes) {
+              const classIds = (classesData.data.classes || []).map((c: any) => String(c.class_id || c.classId));
+              if (classIds.length > 0) {
+                updateUser({ classes: classIds });
+              }
+            }
+          })
+          .catch(err => {
+            console.error('Failed to fetch classes:', err);
+          });
+        
+        // 즉시 대시보드로 이동 (localStorage에 이미 저장됨)
+        window.location.href = '/teacher/dashboard';
       }
 
     } catch (error) {

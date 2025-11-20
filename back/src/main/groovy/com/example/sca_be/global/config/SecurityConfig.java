@@ -125,7 +125,9 @@ public class SecurityConfig {
         configuration.setAllowedOrigins(Arrays.asList(
                 "https://app.sca.site",
                 "https://teacher.sca.site",
-                "http://localhost:3000"
+                "http://localhost:3000",
+                "http://localhost:3001",
+                "http://localhost:5173"
         ));
 
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));

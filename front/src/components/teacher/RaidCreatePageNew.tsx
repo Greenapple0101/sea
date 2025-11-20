@@ -3,7 +3,6 @@ import { Card, CardContent } from "../ui/card";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Button } from "../ui/button";
-import { Sidebar } from "./Sidebar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -274,10 +273,7 @@ export function RaidCreatePageNew() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex">
-      <Sidebar />
-
-      <div className="flex-1 border-l-2 border-gray-300">
+    <>
         <div className="border-b-2 border-gray-300 p-6">
           <h1>레이드 등록</h1>
         </div>
@@ -450,33 +446,22 @@ export function RaidCreatePageNew() {
                   reward_coral: coralReward
                 }));
               }}>
-                <SelectTrigger className="border-2 border-gray-300 rounded-lg">
+                <SelectTrigger className="border-2 border-gray-300 rounded-lg w-full">
                   <SelectValue placeholder="난이도를 선택하세요" />
                 </SelectTrigger>
-                <SelectContent className="border-2 border-gray-300 rounded-lg">
-                  <SelectItem value="LOW">
-                    <div>
-                      <div className="font-medium">하 난이도 (Easy)</div>
-                      <div className="text-sm text-gray-600">학생 참여율이 낮아도 클리어 가능한 난이도</div>
-                      <div className="text-sm text-gray-500">보스 HP: 30,000 ~ 36,000</div>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="MEDIUM">
-                    <div>
-                      <div className="font-medium">중 난이도 (Normal)</div>
-                      <div className="text-sm text-gray-600">평균 협력으로 클리어 가능한 표준 난이도</div>
-                      <div className="text-sm text-gray-500">보스 HP: 38,000 ~ 46,000</div>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="HIGH">
-                    <div>
-                      <div className="font-medium">상 난이도 (Hard)</div>
-                      <div className="text-sm text-gray-600">전원 참여해야 클리어 가능한 높은 난이도</div>
-                      <div className="text-sm text-gray-500">보스 HP: 48,000 ~ 56,000</div>
-                    </div>
-                  </SelectItem>
+                <SelectContent className="border-2 border-gray-300 rounded-lg" position="popper" sideOffset={4}>
+                  <SelectItem value="LOW">하 난이도 (Easy)</SelectItem>
+                  <SelectItem value="MEDIUM">중 난이도 (Normal)</SelectItem>
+                  <SelectItem value="HIGH">상 난이도 (Hard)</SelectItem>
                 </SelectContent>
               </Select>
+              {formState.difficulty && (
+                <div className="text-sm text-gray-600 mt-1">
+                  {formState.difficulty === 'LOW' && '학생 참여율이 낮아도 클리어 가능한 난이도'}
+                  {formState.difficulty === 'MEDIUM' && '평균 협력으로 클리어 가능한 표준 난이도'}
+                  {formState.difficulty === 'HIGH' && '전원 참여해야 클리어 가능한 높은 난이도'}
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -584,7 +569,6 @@ export function RaidCreatePageNew() {
             </div>
           </div>
         </div>
-      </div>
-    </div>
+    </>
   );
 }

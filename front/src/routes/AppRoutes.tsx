@@ -1,6 +1,7 @@
 import React, { useEffect, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Sidebar } from '../components/teacher/Sidebar';
+import { useAuth } from '../contexts/AppContext';
 
 // Components
 import { RoleSelection } from '../components/RoleSelection';
@@ -67,9 +68,39 @@ const StudentLayout: React.FC = () => {
 
 // Teacher Layout Component
 const TeacherLayout: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  // localStorage에서 직접 확인
+  const storedUser = localStorage.getItem('user');
+  const storedUserType = localStorage.getItem('userType');
+  
+  useEffect(() => {
+    // 로그인 페이지에서는 체크하지 않음
+    if (location.pathname.startsWith('/login')) {
+      return;
+    }
+    
+    // 인증되지 않았으면 로그인 페이지로 리다이렉트
+    if (!storedUser || storedUserType !== 'teacher') {
+      navigate('/login/teacher', { replace: true });
+    }
+  }, [storedUser, storedUserType, navigate, location.pathname]);
+  
+  // 로그인 페이지로 가는 중이면 아무것도 렌더링하지 않음
+  if (location.pathname.startsWith('/login')) {
+    return null;
+  }
+  
+  // 인증되지 않았으면 로딩 화면 표시
+  if (!storedUser || storedUserType !== 'teacher') {
+    return <div className="p-6">로딩중...</div>;
+  }
+
   return (
     <div className="min-h-screen bg-white flex">
-      <main className="flex-1 ml-64 overflow-y-auto">
+      <Sidebar />
+      <main className="flex-1 border-l-2 border-gray-300 overflow-y-auto">
         <Outlet />
       </main>
     </div>

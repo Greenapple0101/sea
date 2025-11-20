@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
-import { Sidebar } from "./Sidebar";
 import { ArrowLeft, TrendingUp, Users, Award, Target } from "lucide-react";
 import { get } from "../../utils/api";
 
@@ -112,11 +111,8 @@ export function ClassActivityDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white flex">
-        <Sidebar />
-        <div className="flex-1 border-l-2 border-gray-300 p-6">
-          <p>대시보드 데이터를 불러오는 중...</p>
-        </div>
+      <div className="p-6">
+        <p>대시보드 데이터를 불러오는 중...</p>
       </div>
     );
   }
@@ -127,25 +123,22 @@ export function ClassActivityDashboard() {
   // 안전성 체크
   if (!displayData || !displayData.weeklySummary) {
     return (
-      <div className="min-h-screen bg-white flex">
-        <Sidebar />
-        <div className="flex-1 border-l-2 border-gray-300 p-6">
-          <div className="space-y-4">
-            <Button
-              variant="outline"
-              onClick={() => navigate('/teacher/class')}
-              className="border-2 border-gray-300 rounded-lg"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              돌아가기
-            </Button>
-            <div className="space-y-2">
-              <p className="text-red-600 font-semibold">데이터 구조가 올바르지 않습니다.</p>
-              <p className="text-sm text-gray-600">{error || '대시보드 데이터를 불러올 수 없습니다.'}</p>
-              <pre className="text-xs bg-gray-100 p-2 rounded overflow-auto">
-                {JSON.stringify(displayData, null, 2)}
-              </pre>
-            </div>
+      <div className="p-6">
+        <div className="space-y-4">
+          <Button
+            variant="outline"
+            onClick={() => navigate('/teacher/class')}
+            className="border-2 border-gray-300 rounded-lg"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            돌아가기
+          </Button>
+          <div className="space-y-2">
+            <p className="text-red-600 font-semibold">데이터 구조가 올바르지 않습니다.</p>
+            <p className="text-sm text-gray-600">{error || '대시보드 데이터를 불러올 수 없습니다.'}</p>
+            <pre className="text-xs bg-gray-100 p-2 rounded overflow-auto">
+              {JSON.stringify(displayData, null, 2)}
+            </pre>
           </div>
         </div>
       </div>
@@ -153,10 +146,7 @@ export function ClassActivityDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex">
-      <Sidebar />
-      
-      <div className="flex-1 border-l-2 border-gray-300">
+    <>
         {/* Header */}
         <div className="border-b-2 border-gray-300 p-6">
           <div className="flex items-center justify-between">
@@ -346,8 +336,7 @@ export function ClassActivityDashboard() {
             </CardContent>
           </Card>
         </div>
-      </div>
-    </div>
+    </>
   );
 }
 

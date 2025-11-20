@@ -4,7 +4,6 @@ import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Textarea } from "../ui/textarea";
 import { CheckCircle, X, Image as ImageIcon } from "lucide-react";
-import { Sidebar } from "./Sidebar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Label } from "../ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
@@ -178,10 +177,7 @@ export function QuestApprovalPageNew() {
   };
 
   return (
-    <div className="min-h-screen bg-white flex">
-      <Sidebar />
-      
-      <div className="flex-1 border-l-2 border-gray-300">
+    <>
         <div className="border-b-2 border-gray-300 p-6">
           <h1>퀘스트 승인</h1>
           <p className="text-gray-600 mt-1">승인 대기 중: {pendingQuests.length}건</p>
@@ -259,7 +255,6 @@ export function QuestApprovalPageNew() {
             ))}
           </div>
         </div>
-      </div>
 
       <Dialog open={selectedQuestDetail !== null} onOpenChange={closeDetail}>
         <DialogContent className="!rounded-2xl border-2 border-gray-300 max-w-xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
@@ -446,6 +441,6 @@ export function QuestApprovalPageNew() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 }

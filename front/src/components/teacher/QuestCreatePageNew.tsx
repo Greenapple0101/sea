@@ -5,7 +5,6 @@ import { Label } from "../ui/label";
 import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
 import { Plus, X, Info, Sparkles } from "lucide-react";
-import { Sidebar } from "./Sidebar";
 import { Switch } from "../ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 
@@ -29,10 +28,7 @@ export function QuestCreatePageNew() {
   };
 
   return (
-    <div className="min-h-screen bg-white flex">
-      <Sidebar />
-      
-      <div className="flex-1 border-l-2 border-gray-300">
+    <>
         {/* Header */}
         <div className="border-b-2 border-gray-300 p-6">
           <h1>퀘스트 등록</h1>
@@ -207,6 +203,6 @@ export function QuestCreatePageNew() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 }

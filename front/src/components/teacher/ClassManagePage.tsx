@@ -5,7 +5,6 @@ import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Plus, Users, Copy, Sword, BarChart3 } from "lucide-react";
-import { Sidebar } from "./Sidebar";
 import { Progress } from "../ui/progress";
 import { SectionCard } from "../common/SectionCard";
 import { get, post } from "../../utils/api";
@@ -193,20 +192,14 @@ export function ClassManagePage() {
 
   if (isInitialLoading) {
     return (
-      <div className="min-h-screen bg-white flex">
-        <Sidebar />
-        <div className="flex-1 border-l-2 border-gray-300 p-6">
-          데이터를 불러오는 중입니다...
-        </div>
+      <div className="p-6">
+        데이터를 불러오는 중입니다...
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white flex">
-      <Sidebar />
-      
-      <div className="flex-1 border-l-2 border-gray-300">
+    <>
         {/* Header */}
         <div className="border-b-2 border-gray-300 p-6 space-y-4">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -430,7 +423,6 @@ export function ClassManagePage() {
             </CardContent>
           </Card>
         </div>
-      </div>
 
       {/* 레이드 상세 모달 */}
       <Dialog open={isRaidModalOpen} onOpenChange={setIsRaidModalOpen}>
@@ -531,6 +523,6 @@ export function ClassManagePage() {
           )}
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 }

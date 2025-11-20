@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { Sidebar } from "./Sidebar";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { StudentListItem } from "../common/StudentListItem";
 import { get } from "../../utils/api";
@@ -106,20 +105,14 @@ export function StudentListPage() {
 
   if (error && !classInfo) {
     return (
-      <div className="min-h-screen bg-white flex">
-        <Sidebar />
-        <div className="flex-1 border-l-2 border-gray-300 p-6">
-          <p className="text-red-600">{error}</p>
-        </div>
+      <div className="p-6">
+        <p className="text-red-600">{error}</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white flex">
-      <Sidebar />
-      
-      <div className="flex-1 border-l-2 border-gray-300">
+    <>
         {/* Header */}
         <div className="border-b-2 border-gray-300 p-6">
           <div className="flex items-center justify-between">
@@ -158,7 +151,6 @@ export function StudentListPage() {
             </div>
           )}
         </div>
-      </div>
-    </div>
+    </>
   );
 }
