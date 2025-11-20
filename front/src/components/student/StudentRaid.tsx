@@ -273,7 +273,7 @@ export function StudentRaid() {
   return (
     <div className="p-4 space-y-4 bg-white" style={{ writingMode: 'horizontal-tb' }}>
       <Card className="border-2 border-gray-300">
-        <CardHeader className="pb-4" style={{ writingMode: 'horizontal-tb', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', width: '100%' }}>
+        <div className="pb-4 px-6 pt-6" style={{ writingMode: 'horizontal-tb', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', width: '100%' }}>
           <CardTitle className="text-black text-xl mb-3 whitespace-normal" style={{ writingMode: 'horizontal-tb', textAlign: 'center', width: '100%' }}>{raidData.raid_name}</CardTitle>
           <div className="flex justify-center items-center gap-2 text-sm mb-2" style={{ writingMode: 'horizontal-tb' }}>
             <span className="text-gray-600 whitespace-nowrap">남은 시간</span>
@@ -282,7 +282,7 @@ export function StudentRaid() {
           <div className="text-xs text-gray-500 mt-2 whitespace-normal" style={{ writingMode: 'horizontal-tb', textAlign: 'center' }}>
             상태: {raidData.status === 'ACTIVE' ? '진행중' : '종료됨'}
           </div>
-        </CardHeader>
+        </div>
       </Card>
 
       <Card className="border-2 border-gray-300">
@@ -314,9 +314,9 @@ export function StudentRaid() {
       </Card>
 
       <Card className="border-2 border-gray-300">
-        <CardHeader className="pb-4" style={{ writingMode: 'horizontal-tb', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div className="pb-4 px-6 pt-6" style={{ writingMode: 'horizontal-tb', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <CardTitle className="text-black text-center whitespace-normal" style={{ writingMode: 'horizontal-tb', display: 'block', width: '100%' }}>개인 기여</CardTitle>
-        </CardHeader>
+        </div>
         <CardContent className="space-y-4" style={{ writingMode: 'horizontal-tb' }}>
           <div className="grid grid-cols-2 gap-4" style={{ writingMode: 'horizontal-tb' }}>
             <div className="text-center p-3 border border-gray-200 rounded" style={{ writingMode: 'horizontal-tb' }}>
@@ -343,9 +343,9 @@ export function StudentRaid() {
       </Card>
 
       <Card className="border-2 border-gray-300">
-        <CardHeader className="pb-4" style={{ writingMode: 'horizontal-tb', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div className="pb-4 px-6 pt-6" style={{ writingMode: 'horizontal-tb', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <CardTitle className="text-black text-center whitespace-normal" style={{ writingMode: 'horizontal-tb', display: 'block', width: '100%' }}>레이드 완료 보상</CardTitle>
-        </CardHeader>
+        </div>
         <CardContent className="grid grid-cols-2 gap-4" style={{ writingMode: 'horizontal-tb' }}>
           <div className="text-center p-3 border border-gray-200 rounded" style={{ writingMode: 'horizontal-tb' }}>
             <p className="text-sm text-gray-600 mb-2 whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>코랄</p>
@@ -365,9 +365,9 @@ export function StudentRaid() {
       </Card>
 
       <Card className="border-2 border-gray-300">
-        <CardHeader className="pb-4" style={{ writingMode: 'horizontal-tb', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div className="pb-4 px-6 pt-6" style={{ writingMode: 'horizontal-tb', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <CardTitle className="text-black text-center whitespace-normal" style={{ writingMode: 'horizontal-tb', display: 'block', width: '100%' }}>레이드 로그</CardTitle>
-        </CardHeader>
+        </div>
         <CardContent style={{ writingMode: 'horizontal-tb' }}>
           <div className="max-h-64 overflow-y-auto space-y-3 border-2 border-gray-300 rounded-lg p-3" style={{ writingMode: 'horizontal-tb' }}>
             {logs.length === 0 && (
