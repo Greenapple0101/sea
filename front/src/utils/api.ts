@@ -26,6 +26,14 @@ export function getFullUrl(url: string): string {
   
   // 환경변수가 설정되어 있으면 환경변수 사용
   if (API_BASE_URL) {
+    // URL이 이미 base URL로 시작하면 중복 추가하지 않음
+    if (url.startsWith(API_BASE_URL)) {
+      if (import.meta.env.DEV) {
+        console.log(`🌐 API 요청: ${url} (이미 base URL 포함)`);
+      }
+      return url;
+    }
+    
     // 환경변수 사용: baseURL + 상대 경로
     const fullUrl = `${API_BASE_URL}${url}`;
     if (import.meta.env.DEV) {
