@@ -33,6 +33,7 @@ const StudentDetailPage = lazy(() => import('../components/teacher/StudentDetail
 const TeacherProfilePage = lazy(() => import('../components/teacher/TeacherProfilePage').then(m => ({ default: m.TeacherProfilePage })));
 const ClassCreatePage = lazy(() => import('../components/teacher/ClassCreatePage').then(m => ({ default: m.ClassCreatePage })));
 const ClassActivityDashboard = lazy(() => import('../components/teacher/ClassActivityDashboard').then(m => ({ default: m.ClassActivityDashboard })));
+const FishManagePage = lazy(() => import('../components/teacher/FishManagePage').then(m => ({ default: m.FishManagePage })));
 
 // Student Layout Component
 const StudentLayout: React.FC = () => {
@@ -161,6 +162,9 @@ export const AppRoutes: React.FC = () => {
           <Route path="class/:classId/dashboard" element={<ClassActivityDashboard />} />
           <Route path="students/:classId?" element={<StudentListPage />} />
           <Route path="students/:classId/:id" element={<StudentDetailPage />} />
+
+          {/* Teacher Fish Management */}
+          <Route path="fish" element={<FishManagePage />} />
 
           {/* Teacher Profile */}
           <Route path="profile" element={<TeacherProfilePage />} />

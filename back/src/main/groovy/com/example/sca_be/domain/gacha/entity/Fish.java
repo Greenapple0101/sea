@@ -2,17 +2,18 @@ package com.example.sca_be.domain.gacha.entity;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
 import java.util.List;
 
-//마스터 데이터여서 빌더가 없음(런타임 중에 엔터티 생성하는게 아님)
 @Entity
 @Table(name = "fish")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Builder
 public class Fish {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -29,6 +30,16 @@ public class Fish {
     @Column(name = "probability", nullable = false)
     private Float probability;
 
+    @Column(name = "image_url", length = 500)
+    private String imageUrl;
+
     @OneToMany(mappedBy = "fish")
     private List<CollectionEntry> collectionEntries = new ArrayList<>();
+
+    public void update(String fishName, FishGrade grade, Float probability, String imageUrl) {
+        this.fishName = fishName;
+        this.grade = grade;
+        this.probability = probability;
+        this.imageUrl = imageUrl;
+    }
 }

@@ -7,7 +7,8 @@ import {
   Swords,
   CheckCircle,
   Menu,
-  LogOut
+  LogOut,
+  Fish
 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "../../contexts/AppContext";
@@ -30,6 +31,7 @@ export function Sidebar() {
     { id: '/teacher/quest', label: '퀘스트 등록', icon: Plus },
     { id: '/teacher/raid/create', label: '레이드 등록', icon: Swords },
     { id: '/teacher/quest/approval', label: '퀘스트 승인', icon: CheckCircle },
+    { id: '/teacher/fish', label: '가챠 물고기', icon: Fish },
   ];
 
   const isDashboard = location.pathname === '/teacher/dashboard';

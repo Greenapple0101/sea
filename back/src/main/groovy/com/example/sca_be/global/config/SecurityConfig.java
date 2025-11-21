@@ -85,7 +85,8 @@ public class SecurityConfig {
                                 "/api/v1/raids/creation-info",                     // 레이드 템플릿 조회
                                 "/api/v1/raids",                                   // 레이드 생성 (POST)
                                 "/api/v1/raids/{raidId}/detail",                   // 레이드 상세 조회 (선생님용)
-                                "/api/v1/raids/{raidId}/terminate"                 // 레이드 강제 종료
+                                "/api/v1/raids/{raidId}/terminate",                // 레이드 강제 종료
+                                "/api/v1/fish/**"                                  // 가챠 물고기 관리
                         ).hasRole("TEACHER")
 
                         // 'STUDENT' 권한이 필요한 경로
@@ -98,9 +99,13 @@ public class SecurityConfig {
                                 "/api/v1/collection/**",                           // 수족관, 도감
                                 "/api/v1/raids/my-raid",                          // 내 레이드 조회
                                 "/api/v1/raids/{raidId}/attack",                   // 레이드 공격
-                                "/api/v1/raids/{raidId}/logs",                     // 레이드 로그 조회
-                                "/api/v1/files/upload"                             // 파일 업로드
+                                "/api/v1/raids/{raidId}/logs"                     // 레이드 로그 조회
                         ).hasRole("STUDENT")
+                        
+                        // TEACHER와 STUDENT 모두 접근 가능한 경로
+                        .requestMatchers(
+                                "/api/v1/files/upload"                             // 파일 업로드 (TEACHER, STUDENT 모두)
+                        ).hasAnyRole("TEACHER", "STUDENT")
                         
                         // 인증된 사용자만 접근 가능한 경로
                         .requestMatchers(
