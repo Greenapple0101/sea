@@ -4,7 +4,7 @@ import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Textarea } from "../ui/textarea";
 import { CheckCircle, X, Image as ImageIcon } from "lucide-react";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Label } from "../ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { get, post } from "../../utils/api";
@@ -178,7 +178,7 @@ export function QuestApprovalPageNew() {
 
   return (
     <>
-        <div className="border-b-2 border-gray-300 p-6" style={{ pointerEvents: 'none', position: 'relative', zIndex: 1 }}>
+        <div className="border-b-2 border-gray-300 p-6">
           <h1>퀘스트 승인</h1>
           <p className="text-gray-600 mt-1">승인 대기 중: {pendingQuests.length}건</p>
         </div>
@@ -206,7 +206,7 @@ export function QuestApprovalPageNew() {
             ) : pendingQuests.length === 0 ? (
               <p className="text-sm text-gray-500">승인 대기 중인 퀘스트가 없습니다.</p>
             ) : pendingQuests.map((quest) => (
-              <Card key={quest.assignment_id} className="border-2 border-gray-300 rounded-lg" style={{ overflow: 'visible' }}>
+              <Card key={quest.assignment_id} className="border-2 border-gray-300 rounded-lg">
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between mb-4">
                     <div>
@@ -244,7 +244,6 @@ export function QuestApprovalPageNew() {
                       <Button
                         className="bg-black text-white hover:bg-gray-800 rounded-lg"
                         onClick={() => openDetail(quest.assignment_id)}
-                        style={{ position: 'relative', zIndex: 9999 }}
                       >
                         <CheckCircle className="w-4 h-4 mr-2" />
                         승인
@@ -261,7 +260,6 @@ export function QuestApprovalPageNew() {
         <DialogContent className="!rounded-2xl border-2 border-gray-300 max-w-xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
           <DialogHeader className="flex-shrink-0 p-6 pb-4 border-b-2 border-gray-200">
             <DialogTitle>퀘스트 승인</DialogTitle>
-            <DialogDescription className="sr-only">퀘스트 상세 정보를 확인하고 승인 또는 반려할 수 있습니다.</DialogDescription>
           </DialogHeader>
 
           {detailLoading && <p className="text-sm text-gray-500 px-6 py-4">퀘스트 상세를 불러오는 중입니다...</p>}
@@ -406,7 +404,6 @@ export function QuestApprovalPageNew() {
         <DialogContent className="border-2 border-gray-300 rounded-lg max-w-md">
           <DialogHeader className="text-center">
             <DialogTitle className="text-center text-xl font-bold">완료되었습니다</DialogTitle>
-            <DialogDescription className="sr-only">퀘스트 승인이 완료되었습니다.</DialogDescription>
           </DialogHeader>
           <div className="text-center py-4 space-y-2">
             <CheckCircle className="w-16 h-16 mx-auto mb-4 text-black" />
@@ -428,7 +425,6 @@ export function QuestApprovalPageNew() {
         <DialogContent className="border-2 border-gray-300 rounded-lg max-w-md">
           <DialogHeader className="text-center">
             <DialogTitle className="text-center text-xl font-bold">반려 처리 완료</DialogTitle>
-            <DialogDescription className="sr-only">퀘스트 반려가 완료되었습니다.</DialogDescription>
           </DialogHeader>
           <div className="text-center py-4 space-y-2">
             <X className="w-16 h-16 mx-auto mb-4 text-black" />
