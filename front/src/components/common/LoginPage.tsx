@@ -65,26 +65,80 @@ export function LoginPage() {
       }, { skipAuth: true });
 
 
-      if (!response.ok) {
-        const status = response.status;
-        const data = await response.json();
-
-        if (status === 401) {
-          setFormErrors(prev => ({ ...prev, formGeneral: data.message || '아이디 또는 비밀번호가 일치하지 않습니다.' }));
-          return;
-        }
-        if (status === 400 && data.error_code === 'INVALID_INPUT' && data.data) {
-          setFormErrors(prev => ({ ...prev, ...data.data }));
-          return;
-        }
-        setFormErrors(prev => ({ ...prev, formGeneral: data.message || '로그인에 실패했습니다.' }));
+      const result = await response.json();
+      console.log('로그인 응답:', result);
+      
+      // 백엔드 응답의 success 필드 확인 (가장 중요!)
+      if (!result.success) {
+        const errorMessage = result.message || '아이디 또는 비밀번호가 일치하지 않습니다.';
+        console.error('로그인 실패:', errorMessage);
+        setFormErrors(prev => ({ ...prev, formGeneral: errorMessage }));
         return;
       }
 
-      const { data } = await response.json();
+      // HTTP 상태 코드도 확인
+      if (!response.ok) {
+        const status = response.status;
+        const errorMessage = result.message || (status === 401 ? '아이디 또는 비밀번호가 일치하지 않습니다.' : '로그인에 실패했습니다.');
+        console.error('HTTP 에러:', status, errorMessage);
+        setFormErrors(prev => ({ ...prev, formGeneral: errorMessage }));
+        return;
+      }
 
+      const { data } = result;
+      
+      // data가 없으면 에러
+      if (!data) {
+        console.error('로그인 응답에 data가 없습니다:', result);
+        setFormErrors(prev => ({ ...prev, formGeneral: '로그인 응답 데이터가 없습니다.' }));
+        return;
+      }
+      
+      // 필수 필드 확인
+      if (!data.access_token || !data.refresh_token) {
+        console.error('토큰이 없습니다:', data);
+        setFormErrors(prev => ({ ...prev, formGeneral: '로그인 토큰을 받지 못했습니다.' }));
+        return;
+      }
+      
+      // 사용자 정보 확인
+      if (role === 'teacher' && !data.teacher_id) {
+        console.error('선생님 정보가 없습니다:', data);
+        setFormErrors(prev => ({ ...prev, formGeneral: '선생님 정보를 받지 못했습니다.' }));
+        return;
+      }
+      if (role === 'student' && !data.student_id) {
+        console.error('학생 정보가 없습니다:', data);
+        setFormErrors(prev => ({ ...prev, formGeneral: '학생 정보를 받지 못했습니다.' }));
+        return;
+      }
 
-      login(data.username, role as 'teacher' | 'student', data.access_token, data.refresh_token);
+      // 백엔드 응답 구조에 맞게 user 객체 생성
+      let userData: any;
+      if (role === 'teacher') {
+        userData = {
+          id: String(data.teacher_id),
+          username: data.username,
+          real_name: data.real_name,
+          nickname: data.nickname,
+          email: data.email,
+          classes: [] // 초기값, 나중에 API로 가져올 수 있음
+        };
+      } else {
+        userData = {
+          id: String(data.student_id),
+          username: data.username,
+          real_name: data.real_name,
+          nickname: data.nickname,
+          email: data.email,
+          invite_code: '',
+          coral: data.coral || 0,
+          research_data: data.research_data || 0,
+          mainFish: ''
+        };
+      }
+
+      login(userData, role as 'teacher' | 'student', data.access_token, data.refresh_token);
 
       if (role === 'teacher') {
         navigate('/teacher/dashboard');

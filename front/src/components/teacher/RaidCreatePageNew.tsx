@@ -545,11 +545,12 @@ export function RaidCreatePageNew() {
             )}
 
 
-            <div className="flex gap-3">
+            <div className="flex gap-3 pt-4 border-t-2 border-gray-200">
               <Button
                 variant="outline"
-                className="flex-1 border-2 border-gray-300 rounded-lg hover:bg-gray-100"
+                className="flex-1 border-2 border-gray-300 rounded-lg hover:bg-gray-100 h-12 font-semibold"
                 onClick={() => navigate('/teacher/dashboard')}
+                disabled={submitting}
               >
                 취소
               </Button>
@@ -557,12 +558,12 @@ export function RaidCreatePageNew() {
                 <Button
                   disabled={!canCreate || submitting}
                   onClick={handleSubmit}
-                  className="w-full bg-black hover:bg-gray-800 text-white rounded-lg h-12 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  className="w-full bg-black hover:bg-gray-800 text-white rounded-lg h-12 font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed disabled:hover:bg-gray-400"
                 >
                   {submitting ? '등록 중...' : '레이드 등록'}
                 </Button>
                 {!canCreate && !submitting && (
-                  <p className="text-xs text-gray-500 text-center">
+                  <p className="text-xs text-gray-500 text-center mt-1">
                     {!selectedClass 
                       ? '반 정보를 불러오는 중...' 
                       : !creationInfo 

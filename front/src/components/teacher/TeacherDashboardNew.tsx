@@ -38,21 +38,37 @@ export function TeacherDashboardNew() {
     // 반 목록을 불러오는 비동기 함수
     const fetchClasses = async () => {
       setIsLoading(true);
+      setError(null);
       try {
         // api.ts의 get 함수 사용 - 자동으로 Authorization 헤더에 Bearer token 추가
         const response = await get('/api/v1/classes');
 
+        const data = await response.json();
+        console.log('반 목록 API 응답:', data);
+
         if (!response.ok) {
-          throw new Error('반 목록을 불러오는 데 실패했습니다.');
+          const errorMessage = data?.message || data?.error || '반 목록을 불러오는 데 실패했습니다.';
+          throw new Error(errorMessage);
         }
 
+        // 응답 구조에 따라 유연하게 처리
+        let classesList: ClassSummary[] = [];
+        if (data.data) {
+          if (Array.isArray(data.data)) {
+            classesList = data.data;
+          } else if (Array.isArray(data.data.classes)) {
+            classesList = data.data.classes;
+          } else if (data.data.class_list) {
+            classesList = data.data.class_list;
+          }
+        } else if (Array.isArray(data)) {
+          classesList = data;
+        }
 
-        const data = await response.json();
-
-        console.log(data);
-
-        setClasses(data.data.classes || []);
+        console.log('파싱된 반 목록:', classesList);
+        setClasses(classesList);
       } catch (err) {
+        console.error('반 목록 로드 실패:', err);
         if (err instanceof Error) {
           setError(err.message);
         } else {

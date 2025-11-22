@@ -129,6 +129,13 @@ export async function apiCall(url: string, options: ApiCallOptions = {}): Promis
     const accessToken = localStorage.getItem('accessToken');
     if (accessToken) {
       (defaultHeaders as Record<string, string>).Authorization = `Bearer ${accessToken}`;
+      if (import.meta.env.DEV) {
+        console.log(`🔐 인증 토큰 추가됨: ${url.substring(0, 20)}...`);
+      }
+    } else {
+      if (import.meta.env.DEV) {
+        console.warn(`⚠️ 인증 토큰이 없습니다: ${url}`);
+      }
     }
   }
 
