@@ -85,14 +85,24 @@ export function StudentCollection() {
         const resJson = await response.json();
         const data = resJson.data;
 
-        const converted: UIFish[] = (data.collected_fish as AquariumFishItem[]).map(item => ({
-          fish_id: item.fish_id,
-          fish_name: item.fish_name,
-          grade: item.grade as FishGrade,
-          current_count: item.fish_count,
-          is_owned: true,
-          size: getFishSize(item.grade as FishGrade)
-        }));
+        const converted: UIFish[] = (data.collected_fish as AquariumFishItem[]).map(item => {
+          // Clownfish (5), Seahorse (6), Pufferfish (7)는 COMMON으로 강제 설정
+          // Shark (9), Orca (10)는 RARE로 강제 설정
+          let grade = item.grade as FishGrade;
+          if (item.fish_id === 5 || item.fish_id === 6 || item.fish_id === 7) {
+            grade = 'COMMON';
+          } else if (item.fish_id === 9 || item.fish_id === 10) {
+            grade = 'RARE';
+          }
+          return {
+            fish_id: item.fish_id,
+            fish_name: item.fish_name,
+            grade: grade,
+            current_count: item.fish_count,
+            is_owned: true,
+            size: getFishSize(grade)
+          };
+        });
 
         setFishList(converted);
         setStats({ current: converted.length, total: 0 }); // 수족관은 종류 수만 표시하거나 총 마리수 표시
@@ -104,17 +114,44 @@ export function StudentCollection() {
         const resJson = await response.json();
         const data = resJson.data;
 
-        const converted: UIFish[] = (data.fish_list as EncyclopediaFishItem[]).map(item => ({
-          fish_id: item.fish_id,
-          fish_name: item.fish_name,
-          grade: item.grade as FishGrade,
-          current_count: item.fish_count,
-          is_owned: item.is_collected,
-          size: getFishSize(item.grade as FishGrade)
-        }));
+        const converted: UIFish[] = (data.fish_list as EncyclopediaFishItem[]).map(item => {
+          // Clownfish (5), Seahorse (6), Pufferfish (7)는 COMMON으로 강제 설정
+          // Shark (9), Orca (10)는 RARE로 강제 설정
+          let grade = item.grade as FishGrade;
+          if (item.fish_id === 5 || item.fish_id === 6 || item.fish_id === 7) {
+            grade = 'COMMON';
+          } else if (item.fish_id === 9 || item.fish_id === 10) {
+            grade = 'RARE';
+          }
+          return {
+            fish_id: item.fish_id,
+            fish_name: item.fish_name,
+            grade: grade,
+            current_count: item.fish_count,
+            is_owned: item.is_collected,
+            size: getFishSize(grade)
+          };
+        });
 
-        setFishList(converted);
-        setStats({ current: data.collected_count, total: data.total_fish });
+        // 백엔드에서 거북이가 이미 있는지 확인
+        const hasTurtle = converted.some(fish => fish.fish_id === 11);
+        
+        // 프론트엔드에서 거북이 1개만 추가 (없는 경우만)
+        const additionalFish: UIFish[] = [];
+        
+        if (!hasTurtle) {
+          additionalFish.push({
+            fish_id: 11, // Turtle
+            fish_name: 'Turtle',
+            grade: 'RARE' as FishGrade,
+            current_count: 0,
+            is_owned: false, // 기본적으로 미수집 상태
+            size: getFishSize('RARE' as FishGrade)
+          });
+        }
+
+        setFishList([...converted, ...additionalFish]);
+        setStats({ current: data.collected_count, total: data.total_fish + additionalFish.length });
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : '알 수 없는 오류 발생');
@@ -320,8 +357,8 @@ export function StudentCollection() {
   if (error) return <div className="p-4" style={{ color: "red" }}>오류: {error}</div>;
 
   return (
-    <div className="retro-layout p-4 space-y-4 pb-20 max-w-screen-xl mx-auto" style={{ backgroundColor: "var(--bg-color)", minHeight: "100vh" }}>
-      <menu role="tablist">
+    <div className="p-4 space-y-4 pb-20 max-w-screen-xl mx-auto" style={{ backgroundColor: "var(--bg-color)", minHeight: "100vh" }}>
+      <menu role="tablist" style={{ margin: "0 0 -2px 0" }}>
         <li role="tab" aria-selected={currentView === 'aquarium'}>
           <a href="#" onClick={(e) => { e.preventDefault(); setCurrentView('aquarium'); }}>수족관</a>
         </li>
@@ -331,7 +368,7 @@ export function StudentCollection() {
       </menu>
 
       {/* 메인 윈도우 */}
-      <div className="window" role="tabpanel" style={{ width: "100%" }}>
+      <div className="window" role="tabpanel" style={{ width: "100%", margin: "0" }}>
         <div className="window-body">
 
           {/* 수족관 뷰 */}
@@ -391,20 +428,23 @@ export function StudentCollection() {
 
               <div className="sunken-panel" style={{ height: "400px", overflowY: "scroll", padding: "10px", background: "#fff" }}>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "10px" }}>
-                  {fishList.map((fish) => (
+                  {fishList.map((fish) => {
+                    const isTurtle = fish.fish_id === 11 && fish.fish_name === 'Turtle';
+                    const isOwnedOrTurtle = fish.is_owned || isTurtle;
+                    return (
                     <div
                       key={fish.fish_id}
                       className="window"
-                      onClick={() => fish.is_owned && handleFishClick(fish)}
+                      onClick={() => isOwnedOrTurtle && handleFishClick(fish)}
                       style={{
-                        cursor: fish.is_owned ? "pointer" : "default",
-                        opacity: fish.is_owned ? 1 : 0.5,
-                        backgroundColor: fish.is_owned ? "#fff" : "#eee"
+                        cursor: isOwnedOrTurtle ? "pointer" : "default",
+                        opacity: isOwnedOrTurtle ? 1 : 0.5,
+                        backgroundColor: isOwnedOrTurtle ? "#fff" : "#eee"
                       }}
                     >
                       <div className="window-body" style={{ textAlign: "center", padding: "5px" }}>
                         <div style={{ height: "50px", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "5px", objectFit: "contain" }}>
-                          {fish.is_owned && fish.fish_name !== '???' && FISH_ICONS[fish.fish_id] ? (
+                          {isOwnedOrTurtle && fish.fish_name !== '???' && FISH_ICONS[fish.fish_id] ? (
                             renderFishSprite(fish, 2)
                           ) : (
                             <span style={{ fontSize: "30px" }}>❓</span>
@@ -418,7 +458,8 @@ export function StudentCollection() {
                         </div>
                       </div>
                     </div>
-                  ))}
+                  );
+                  })}
                 </div>
               </div>
             </>

@@ -7,7 +7,7 @@
 -- Probability calculation:
 -- COMMON (70%): 7 fish -> 70/7 = 10% each
 -- RARE (25%): 4 fish -> 25/4 = 6.25% each
--- LEGENDARY (5%): 5 fish -> 5/5 = 1% each (빈칸으로 표시)
+-- LEGENDARY (5%): 2 fish -> 5/2 = 2.5% each (빈칸으로 표시)
 -- Total: 100%
 INSERT INTO fish (fish_name, grade, probability) VALUES
 -- COMMON (7개)
@@ -19,16 +19,13 @@ INSERT INTO fish (fish_name, grade, probability) VALUES
 ('Seahorse', 'COMMON', 0.10),
 ('Pufferfish', 'COMMON', 0.10),
 -- RARE (4개)
-('Turtle', 'RARE', 0.0625),
 ('Stingray', 'RARE', 0.0625),
 ('Shark', 'RARE', 0.0625),
 ('Orca', 'RARE', 0.0625),
--- LEGENDARY (5개) - 빈칸으로 표시
-('???', 'LEGENDARY', 0.01),
-('???', 'LEGENDARY', 0.01),
-('???', 'LEGENDARY', 0.01),
-('???', 'LEGENDARY', 0.01),
-('???', 'LEGENDARY', 0.01);
+('Turtle', 'RARE', 0.0625),
+-- LEGENDARY (2개) - 빈칸으로 표시
+('???', 'LEGENDARY', 0.025),
+('???', 'LEGENDARY', 0.025);
 
 -- 2. Members (User Base Info) - 3 Teachers, 10 Students
 -- member_id is auto-generated
