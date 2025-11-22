@@ -2,6 +2,7 @@ package com.example.sca_be.domain.gacha.entity;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -13,6 +14,7 @@ import java.util.List;
 @Table(name = "fish")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
 @Builder
 public class Fish {
     @Id
@@ -34,6 +36,7 @@ public class Fish {
     private String imageUrl;
 
     @OneToMany(mappedBy = "fish")
+    @Builder.Default
     private List<CollectionEntry> collectionEntries = new ArrayList<>();
 
     public void update(String fishName, FishGrade grade, Float probability, String imageUrl) {

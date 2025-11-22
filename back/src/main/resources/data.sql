@@ -5,21 +5,30 @@
 -- 1. Fish (Master Data) - Fish available through gacha
 -- fish_id is auto-generated
 -- Probability calculation:
--- COMMON (70%): 4 fish -> 70/4 = 17.5% each
+-- COMMON (70%): 7 fish -> 70/7 = 10% each
 -- RARE (25%): 4 fish -> 25/4 = 6.25% each
--- LEGENDARY (5%): 2 fish -> 5/2 = 2.5% each
+-- LEGENDARY (5%): 5 fish -> 5/5 = 1% each (빈칸으로 표시)
 -- Total: 100%
 INSERT INTO fish (fish_name, grade, probability) VALUES
-('Tropical Fish', 'COMMON', 0.175),
-('Goldfish', 'COMMON', 0.175),
-('Guppy', 'COMMON', 0.175),
-('Neon Tetra', 'COMMON', 0.175),
-('Clownfish', 'RARE', 0.0625),
-('Seahorse', 'RARE', 0.0625),
-('Pufferfish', 'RARE', 0.0625),
+-- COMMON (7개)
+('Tropical Fish', 'COMMON', 0.10),
+('Goldfish', 'COMMON', 0.10),
+('Guppy', 'COMMON', 0.10),
+('Neon Tetra', 'COMMON', 0.10),
+('Clownfish', 'COMMON', 0.10),
+('Seahorse', 'COMMON', 0.10),
+('Pufferfish', 'COMMON', 0.10),
+-- RARE (4개)
+('Turtle', 'RARE', 0.0625),
 ('Stingray', 'RARE', 0.0625),
-('Shark', 'LEGENDARY', 0.025),
-('Orca', 'LEGENDARY', 0.025);
+('Shark', 'RARE', 0.0625),
+('Orca', 'RARE', 0.0625),
+-- LEGENDARY (5개) - 빈칸으로 표시
+('???', 'LEGENDARY', 0.01),
+('???', 'LEGENDARY', 0.01),
+('???', 'LEGENDARY', 0.01),
+('???', 'LEGENDARY', 0.01),
+('???', 'LEGENDARY', 0.01);
 
 -- 2. Members (User Base Info) - 3 Teachers, 10 Students
 -- member_id is auto-generated
@@ -96,6 +105,7 @@ INSERT INTO collection_entries (collection_id, fish_id, fish_count) VALUES
 (1, 2, 2),
 (1, 5, 1),
 (1, 9, 1),
+(1, 10, 1),
 -- Student 5 (Kim Cheolsu) - collection_id will be 2
 (2, 1, 5),
 (2, 3, 2),

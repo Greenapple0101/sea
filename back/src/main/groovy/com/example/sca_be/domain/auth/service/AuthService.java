@@ -169,12 +169,10 @@ public class AuthService {
                     .expiresIn(expiresIn)
                     .build();
         } else {
-            Student student = studentRepository.findById(member.getMemberId())
+            // classes를 함께 조회하여 LazyInitializationException 방지
+            Student student = studentRepository.findByIdWithClasses(member.getMemberId())
                     .orElseThrow(() -> new CustomException(ErrorCode.STUDENT_NOT_FOUND));
             Classes classes = student.getClasses();
-            if (classes == null) {
-                throw new CustomException(ErrorCode.CLASS_NOT_FOUND, "학생이 속한 반을 찾을 수 없습니다.");
-            }
             return StudentLoginResponse.builder()
                     .userType("student")
                     .studentId(student.getMemberId())
@@ -182,8 +180,8 @@ public class AuthService {
                     .realName(member.getRealName())
                     .nickname(member.getNickname())
                     .email(member.getEmail())
-                    .classId(classes.getClassId())
-                    .className(classes.getClassName())
+                    .classId(classes != null ? classes.getClassId() : null)
+                    .className(classes != null ? classes.getClassName() : null)
                     .coral(student.getCoral() != null ? student.getCoral() : 0)
                     .researchData(student.getResearchData() != null ? student.getResearchData() : 0)
                     .role("ROLE_" + member.getRole().name())

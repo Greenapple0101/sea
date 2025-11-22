@@ -102,4 +102,9 @@ public class Student {
     public Classes getClassEntity() {
         return this.classes;
     }
+
+    // Lombok @Getter가 생성하지만 명시적으로 추가 (호환성)
+    public Classes getClasses() {
+        return this.classes;
+    }
 }

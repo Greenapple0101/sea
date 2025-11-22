@@ -1,9 +1,5 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import { Progress } from '../ui/progress';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { useAuth, StudentUser } from "../../contexts/AppContext";
 
 interface Achievement {
@@ -78,165 +74,212 @@ export function StudentProfile() {
   
   //로그인 여부 확인
   if (!isAuthenticated || !user) {
-    return <div className="p-6">로딩중...</div>;
+    return <div className="p-6">로그인 정보 확인 중...</div>;
   }
 
   if (userType !== 'student') {
-    return <div className="p-6">학생 전용 대시보드입니다.</div>;
+    return <div className="p-6">접근 권한이 없습니다.</div>;
   }
 
   const currentUser = user as StudentUser;
 
   return (
-    <div className="p-4 space-y-4 bg-white">
-      {/* 프로필 헤더 */}
-      <Card className="border-2 border-gray-300">
-        <CardContent className="p-6">
-          <div className="text-center space-y-4">
+    <div className="p-4 space-y-6 pb-20 max-w-screen-xl mx-auto" style={{ backgroundColor: "var(--bg-color)", minHeight: "100vh" }}>
+      {/* 프로필 헤더 윈도우 */}
+      <div className="window" style={{ width: "100%" }}>
+        <div className="title-bar">
+          <div className="title-bar-text">&nbsp;프로필</div>
+          <div className="title-bar-controls">
+            <button aria-label="Minimize" />
+            <button aria-label="Maximize" />
+            <button aria-label="Close" />
+          </div>
+        </div>
+        <div className="window-body">
+          <div style={{ textAlign: "center" }}>
             {/* 대표 물고기 */}
-            <div className="w-24 h-24 bg-gray-400 rounded-full mx-auto flex items-center justify-center">
-              <span className="text-white">물고기</span>
+            <div className="sunken-panel" style={{
+              width: "100px", height: "100px", margin: "0 auto 15px auto",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              background: "#c0c0c0", borderRadius: "50%"
+            }}>
+              <span style={{ fontSize: "40px" }}>🐟</span>
             </div>
 
             {/* 사용자 정보 */}
-            <div>
-              <h2 className="text-xl font-medium text-black">{currentUser.real_name}</h2>
-              <p className="text-gray-600">@{currentUser.username}</p>
-              <p className="text-gray-600">{currentUser.invite_code}</p>
-            </div>
+            <h2 style={{ margin: "5px 0", fontWeight: "bold" }}>{currentUser.real_name}</h2>
+            <p style={{ fontSize: "12px", color: "#666", margin: "5px 0" }}>@{currentUser.username}</p>
+            {currentUser.invite_code && (
+              <p style={{ fontSize: "12px", color: "#666", margin: "5px 0" }}>초대 코드: {currentUser.invite_code}</p>
+            )}
 
             {/* 대표 칭호 */}
-            <div>
+            <div style={{ marginTop: "10px" }}>
               <Badge className="bg-black text-white">
                 {contributionData.achievements[0]?.title || '새내기 학습자'}
               </Badge>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      {/* 스탯 정보 */}
-      <Card className="border-2 border-gray-300">
-        <CardContent className="p-4 text-center">
-          <p className="text-sm text-gray-600">현재 퀘스트 달성률</p>
-          <p className="text-2xl font-medium text-black">{questCompletionRate}%</p>
-        </CardContent>
-      </Card>
+      {/* 스탯 정보 윈도우 */}
+      <div className="window" style={{ width: "100%" }}>
+        <div className="title-bar">
+          <div className="title-bar-text">퀘스트 달성률</div>
+        </div>
+        <div className="window-body text-center">
+          <p style={{ fontSize: "12px", color: "#666", marginBottom: "5px" }}>현재 퀘스트 달성률</p>
+          <p style={{ fontSize: "32px", fontWeight: "bold", margin: "10px 0" }}>{questCompletionRate}%</p>
+        </div>
+      </div>
 
-      {/* 기여도 데이터 */}
-      <Card className="border-2 border-gray-300">
-        <CardHeader>
-          <CardTitle className="text-black">기여도 기록</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="text-center p-3 border border-gray-200 rounded">
-              <p className="text-sm text-gray-600">총 기여도</p>
-              <p className="text-lg font-medium text-black">{contributionData.totalContribution.toLocaleString()}</p>
+      {/* 기여도 데이터 윈도우 */}
+      <div className="window" style={{ width: "100%" }}>
+        <div className="title-bar">
+          <div className="title-bar-text">기여도 기록</div>
+        </div>
+        <div className="window-body">
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "15px" }}>
+            <div className="sunken-panel" style={{ padding: "10px", textAlign: "center", background: "var(--color-white)" }}>
+              <p style={{ margin: 0, fontSize: "12px", color: "#666" }}>총 기여도</p>
+              <p style={{ margin: "5px 0 0 0", fontSize: "18px", fontWeight: "bold" }}>{contributionData.totalContribution.toLocaleString()}</p>
             </div>
-            <div className="text-center p-3 border border-gray-200 rounded">
-              <p className="text-sm text-gray-600">현재 순위</p>
-              <p className="text-lg font-medium text-black">
+            <div className="sunken-panel" style={{ padding: "10px", textAlign: "center", background: "var(--color-white)" }}>
+              <p style={{ margin: 0, fontSize: "12px", color: "#666" }}>현재 순위</p>
+              <p style={{ margin: "5px 0 0 0", fontSize: "18px", fontWeight: "bold" }}>
                 {contributionData.rank}위 / {contributionData.totalParticipants}명
               </p>
             </div>
           </div>
 
-          <div>
-            <div className="flex justify-between text-sm mb-2">
-              <span className="text-gray-600">이번 주 기여도</span>
-              <span className="text-black">{contributionData.weeklyContribution}</span>
+          <fieldset style={{ padding: "10px" }}>
+            <legend>이번 주 기여도</legend>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", marginBottom: "5px" }}>
+              <span>{contributionData.weeklyContribution}</span>
+              <span>500</span>
             </div>
-            <Progress value={(contributionData.weeklyContribution / 500) * 100} className="h-2" />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* 칭호 로그 */}
-      <Card className="border-2 border-gray-300">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-black">획득한 칭호</CardTitle>
-          <Button
-            onClick={() => setShowTitleLog(true)}
-            className="bg-white text-black border border-gray-300 hover:bg-gray-100"
-            size="sm"
-          >
-            전체 보기
-          </Button>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            {contributionData.achievements.slice(0, 3).map((achievement) => (
-              <div key={achievement.id} className="flex items-center justify-between p-2 border border-gray-200 rounded">
-                <div className="flex items-center space-x-2">
-                  {getBadgeByType(achievement.type)}
-                  <span className="text-black">{achievement.title}</span>
-                </div>
-                <span className="text-xs text-gray-500">{achievement.earnedDate}</span>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* 액션 버튼들 */}
-      <div className="space-y-3">
-        <Button
-          onClick={() => setShowCollection(true)}
-          className="w-full bg-white text-black border-2 border-gray-300 hover:bg-gray-100"
-        >
-          도감 보기
-        </Button>
-
+            <div className="progress-indicator segmented" style={{ width: "100%", height: "20px" }}>
+              <div
+                className="progress-indicator-bar"
+                style={{
+                  width: `${(contributionData.weeklyContribution / 500) * 100}%`,
+                  background: "linear-gradient(90deg, #4a90e2 0 16px, transparent 0 2px)",
+                  backgroundColor: "transparent"
+                }}
+              />
+            </div>
+          </fieldset>
+        </div>
       </div>
 
-      {/* 칭호 로그 모달 */}
-      <Dialog open={showTitleLog} onOpenChange={setShowTitleLog}>
-        <DialogContent className="bg-white border-2 border-gray-300">
-          <DialogHeader>
-            <DialogTitle className="text-black">획득한 칭호 목록</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3 max-h-64 overflow-y-auto">
-            {contributionData.achievements.map((achievement) => (
-              <div key={achievement.id} className="p-3 border border-gray-200 rounded">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center space-x-2">
+      {/* 칭호 로그 윈도우 */}
+      <div className="window" style={{ width: "100%" }}>
+        <div className="title-bar">
+          <div className="title-bar-text">획득한 칭호</div>
+          <div className="title-bar-controls">
+            <button aria-label="Help" onClick={() => setShowTitleLog(true)} />
+          </div>
+        </div>
+        <div className="window-body">
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            {contributionData.achievements.slice(0, 3).map((achievement) => (
+              <fieldset key={achievement.id} style={{ padding: "8px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                     {getBadgeByType(achievement.type)}
-                    <span className="font-medium text-black">{achievement.title}</span>
+                    <span style={{ fontWeight: "bold" }}>{achievement.title}</span>
                   </div>
-                  <span className="text-xs text-gray-500">{achievement.earnedDate}</span>
+                  <span style={{ fontSize: "11px", color: "#666" }}>{achievement.earnedDate}</span>
                 </div>
-                <p className="text-sm text-gray-600">{achievement.description}</p>
-              </div>
+              </fieldset>
             ))}
           </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* 도감 모달 (간단한 버전) */}
-      <Dialog open={showCollection} onOpenChange={setShowCollection}>
-        <DialogContent className="bg-white border-2 border-gray-300">
-          <DialogHeader>
-            <DialogTitle className="text-black">내 물고기 컬렉션</DialogTitle>
-          </DialogHeader>
-          <div className="text-center space-y-4">
-            <p className="text-gray-600">현재 수집한 물고기: 5종</p>
-            <div className="grid grid-cols-3 gap-2">
-              {Array.from({ length: 5 }, (_, i) => (
-                <div key={i} className="w-16 h-16 bg-gray-400 rounded flex items-center justify-center">
-                  <span className="text-white text-xs">물고기</span>
-                </div>
-              ))}
-            </div>
-            <Button
-              onClick={() => setShowCollection(false)}
-              className="w-full bg-black text-white"
-            >
-              닫기
-            </Button>
+          <div style={{ textAlign: "center", marginTop: "10px" }}>
+            <button onClick={() => setShowTitleLog(true)} style={{ minWidth: "100px" }}>
+              전체 보기
+            </button>
           </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+      </div>
+
+      {/* 액션 버튼 윈도우 */}
+      <div className="window" style={{ width: "100%" }}>
+        <div className="window-body">
+          <button
+            onClick={() => setShowCollection(true)}
+            style={{ width: "100%", height: "40px", fontWeight: "bold" }}
+          >
+            도감 보기
+          </button>
+        </div>
+      </div>
+
+      {/* [모달] 칭호 로그 */}
+      {showTitleLog && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="window" style={{ width: '90%', maxWidth: '500px', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}>
+            <div className="title-bar">
+              <div className="title-bar-text">획득한 칭호 목록</div>
+              <div className="title-bar-controls">
+                <button aria-label="Close" onClick={() => setShowTitleLog(false)} />
+              </div>
+            </div>
+            <div className="window-body" style={{ overflowY: 'auto', flex: 1 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                {contributionData.achievements.map((achievement) => (
+                  <fieldset key={achievement.id} style={{ padding: "10px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "5px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        {getBadgeByType(achievement.type)}
+                        <span style={{ fontWeight: "bold" }}>{achievement.title}</span>
+                      </div>
+                      <span style={{ fontSize: "11px", color: "#666" }}>{achievement.earnedDate}</span>
+                    </div>
+                    <p style={{ fontSize: "12px", color: "#666", margin: 0 }}>{achievement.description}</p>
+                  </fieldset>
+                ))}
+              </div>
+              <div style={{ textAlign: "center", marginTop: "15px" }}>
+                <button onClick={() => setShowTitleLog(false)} style={{ minWidth: "80px" }}>
+                  닫기
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* [모달] 도감 */}
+      {showCollection && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="window" style={{ width: '90%', maxWidth: '400px' }}>
+            <div className="title-bar">
+              <div className="title-bar-text">내 물고기 컬렉션</div>
+              <div className="title-bar-controls">
+                <button aria-label="Close" onClick={() => setShowCollection(false)} />
+              </div>
+            </div>
+            <div className="window-body text-center">
+              <p style={{ fontSize: "12px", color: "#666", marginBottom: "15px" }}>현재 수집한 물고기: 5종</p>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px", marginBottom: "15px" }}>
+                {Array.from({ length: 5 }, (_, i) => (
+                  <div key={i} className="sunken-panel" style={{
+                    width: "80px", height: "80px", margin: "0 auto",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    background: "#c0c0c0"
+                  }}>
+                    <span style={{ fontSize: "30px" }}>🐟</span>
+                  </div>
+                ))}
+              </div>
+              <button onClick={() => setShowCollection(false)} style={{ minWidth: "100px" }}>
+                닫기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

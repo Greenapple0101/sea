@@ -37,3 +37,13 @@ jwt:
 
 file:
   upload-dir: uploads # 파일 업로드 디렉토리
+
+cloud:
+  aws:
+    credentials:
+      access-key: ${AWS_ACCESS_KEY:dummy-access-key}
+      secret-key: ${AWS_SECRET_KEY:dummy-secret-key}
+    s3:
+      bucket: ${AWS_S3_BUCKET:dummy-bucket}
+    region:
+      static: ap-northeast-2

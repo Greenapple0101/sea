@@ -24,27 +24,26 @@ export function getFullUrl(url: string): string {
     return url;
   }
   
-  // 환경변수가 설정되어 있으면 환경변수 사용
+  // 개발 환경에서는 항상 상대 경로 사용 (Vite 프록시 사용)
+  if (import.meta.env.DEV) {
+    if (import.meta.env.DEV) {
+      console.log(`🌐 API 요청 (개발): ${url} → 프록시 사용`);
+    }
+    return url;
+  }
+  
+  // 프로덕션 환경에서만 환경변수 사용
   if (API_BASE_URL) {
     // URL이 이미 base URL로 시작하면 중복 추가하지 않음
     if (url.startsWith(API_BASE_URL)) {
-      if (import.meta.env.DEV) {
-        console.log(`🌐 API 요청: ${url} (이미 base URL 포함)`);
-      }
       return url;
     }
     
     // 환경변수 사용: baseURL + 상대 경로
     const fullUrl = `${API_BASE_URL}${url}`;
-    if (import.meta.env.DEV) {
-      console.log(`🌐 API 요청: ${url} → ${fullUrl}`);
-    }
     return fullUrl;
   } else {
-    // 환경변수가 없으면 상대 경로 그대로 사용 (Vite 프록시 또는 현재 도메인 기준)
-    if (import.meta.env.DEV) {
-      console.warn('⚠️ 환경변수 VITE_API_URL이 설정되지 않았습니다. 상대 경로 사용:', url);
-    }
+    // 환경변수가 없으면 상대 경로 그대로 사용
     return url;
   }
 }
@@ -116,13 +115,17 @@ async function refreshAccessToken(): Promise<string> {
  * - refresh 실패 시 로그아웃 처리
  */
 export async function apiCall(url: string, options: ApiCallOptions = {}): Promise<Response> {
-  const { skipAuth = false, headers = {}, ...restOptions } = options;
+  const { skipAuth = false, headers = {}, body, ...restOptions } = options;
 
   // 기본 헤더 설정
   const defaultHeaders: HeadersInit = {
-    'Content-Type': 'application/json',
     ...headers,
   };
+
+  // body가 FormData가 아닐 때만 Content-Type을 application/json으로 설정
+  if (!(body instanceof FormData)) {
+    (defaultHeaders as Record<string, string>)['Content-Type'] = 'application/json';
+  }
 
   // skipAuth가 false이고 accessToken이 있으면 헤더에 추가
   if (!skipAuth) {
@@ -137,6 +140,7 @@ export async function apiCall(url: string, options: ApiCallOptions = {}): Promis
   let response = await fetch(fullUrl, {
     ...restOptions,
     headers: defaultHeaders,
+    body,
   });
 
   // 401 에러가 아니면 바로 반환
@@ -158,6 +162,7 @@ export async function apiCall(url: string, options: ApiCallOptions = {}): Promis
       response = await fetch(fullUrl, {
         ...restOptions,
         headers: defaultHeaders,
+        body,
       });
 
       return response;
@@ -188,6 +193,7 @@ export async function apiCall(url: string, options: ApiCallOptions = {}): Promis
       return fetch(retryUrl, {
         ...restOptions,
         headers: defaultHeaders,
+        body,
       });
     }) as Promise<Response>;
   }

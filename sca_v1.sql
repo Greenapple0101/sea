@@ -16,6 +16,7 @@ CREATE TABLE members (
   email VARCHAR(100) NOT NULL, -- 이메일
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP, -- 생성일
   role ENUM('TEACHER', 'STUDENT') NOT NULL, -- 역할
+  deleted_at DATETIME DEFAULT NULL, -- Soft Delete
   PRIMARY KEY (member_id),
   UNIQUE KEY UK_USERNAME (username),
   UNIQUE KEY UK_NICKNAME (nickname),
@@ -37,7 +38,39 @@ CREATE TABLE students (
   coral INT NOT NULL DEFAULT 0, -- 재화1
   research_data INT NOT NULL DEFAULT 0, -- 재화2
   correction_factor FLOAT NOT NULL DEFAULT 1.0, -- 보정계수
+  grade FLOAT DEFAULT 0, -- 학생 성적
   PRIMARY KEY (member_id)
+);
+
+-- students_factors (학생 보정계수 - 전역)
+DROP TABLE IF EXISTS students_factors;
+CREATE TABLE students_factors (
+  id BIGINT NOT NULL AUTO_INCREMENT, -- Primary Key
+  student_id INT NOT NULL, -- 학생 ID
+  global_factor DOUBLE NOT NULL DEFAULT 1.0, -- 전역 보정계수
+  initialized BOOLEAN NOT NULL DEFAULT FALSE, -- 초기화 여부
+  initial_score INT DEFAULT NULL, -- 초기 성적
+  initialized_at DATETIME DEFAULT NULL, -- 초기화 시각
+  total_learning_count INT NOT NULL DEFAULT 0, -- 총 학습 횟수
+  last_learning_at DATETIME DEFAULT NULL, -- 마지막 학습 시각
+  avg_modification_rate DOUBLE DEFAULT NULL, -- 평균 수정률
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, -- 생성일
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, -- 수정일
+  PRIMARY KEY (id),
+  UNIQUE KEY UK_SF_STUDENT_ID (student_id)
+);
+
+-- students_quest_factors (학생 보정계수 - 난이도별)
+DROP TABLE IF EXISTS students_quest_factors;
+CREATE TABLE students_quest_factors (
+  id BIGINT NOT NULL AUTO_INCREMENT, -- Primary Key
+  student_factor_id BIGINT NOT NULL, -- students_factors 참조
+  difficulty ENUM('EASY', 'BASIC', 'MEDIUM', 'HARD', 'VERY_HARD') NOT NULL, -- 난이도
+  factor_value DOUBLE NOT NULL, -- 해당 난이도 보정계수
+  learning_count INT NOT NULL DEFAULT 0, -- 해당 난이도 학습 횟수
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, -- 생성일
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, -- 수정일
+  PRIMARY KEY (id)
 );
 
 -- classes (학급)
@@ -51,6 +84,7 @@ CREATE TABLE classes (
   grade VARCHAR(20), -- 학년
   subject VARCHAR(20), -- 과목
   description VARCHAR(100), -- 반 설명
+  deleted_at DATETIME DEFAULT NULL, -- Soft Delete
   PRIMARY KEY (class_id),
   UNIQUE KEY UK_INVITE_CODE (invite_code)
 );
@@ -67,6 +101,7 @@ CREATE TABLE quests (
   reward_research_data_default INT DEFAULT 0, -- 탐사데이터 보상
   deadline DATETIME, -- 마감일 (추가)
   difficulty INT, -- 난이도 (1-5) (추가)
+  deleted_at DATETIME DEFAULT NULL, -- Soft Delete
   PRIMARY KEY (quest_id)
 );
 
@@ -150,6 +185,7 @@ CREATE TABLE contributions (
   raid_id INT, -- 레이드 id
   student_id INT, -- 학생 id
   damage INT NOT NULL DEFAULT 0, -- 대미지
+  updated_at DATETIME, -- 기여 시간
   PRIMARY KEY (contribution_id),
   UNIQUE KEY UK_RAID_STUDENT (raid_id, student_id)
 );
@@ -231,6 +267,25 @@ CREATE TABLE action_logs (
   PRIMARY KEY (log_id)
 );
 
+-- ai_learning_logs (AI 학습 로그)
+DROP TABLE IF EXISTS ai_learning_logs;
+CREATE TABLE ai_learning_logs (
+  id BIGINT NOT NULL AUTO_INCREMENT, -- Primary Key
+  assignment_id INT NOT NULL, -- 퀘스트 할당 ID (quest_assignments)
+  student_id INT NOT NULL, -- 학생 ID
+  difficulty ENUM('EASY', 'BASIC', 'MEDIUM', 'HARD', 'VERY_HARD') NOT NULL, -- 퀘스트 난이도
+  cognitive_score INT NOT NULL, -- 인지과정 점수
+  effort_score INT NOT NULL, -- 예상 노력 점수
+  ai_coral INT NOT NULL, -- AI 추천 코랄
+  ai_research_data INT NOT NULL, -- AI 추천 탐사데이터
+  teacher_coral INT NOT NULL, -- 교사 확정 코랄
+  teacher_research_data INT NOT NULL, -- 교사 확정 탐사데이터
+  learned BOOLEAN NOT NULL DEFAULT FALSE, -- 학습 완료 여부
+  learned_at DATETIME DEFAULT NULL, -- 학습 시각
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, -- 생성일
+  PRIMARY KEY (id)
+);
+
 -- ---
 -- 외래 키 및 인덱스 추가
 -- ---
@@ -244,6 +299,14 @@ ALTER TABLE students
   ADD CONSTRAINT FK_STUDENTS_MEMBERS FOREIGN KEY (member_id) REFERENCES members (member_id) ON DELETE CASCADE,
   ADD CONSTRAINT FK_STUDENTS_CLASSES FOREIGN KEY (class_id) REFERENCES classes (class_id) ON DELETE SET NULL,
   ADD INDEX IDX_STUDENTS_CLASS_ID (class_id);
+
+-- students_factors
+ALTER TABLE students_factors
+  ADD CONSTRAINT FK_SF_STUDENTS FOREIGN KEY (student_id) REFERENCES students (member_id) ON DELETE CASCADE;
+
+-- students_quest_factors
+ALTER TABLE students_quest_factors
+  ADD CONSTRAINT FK_SQF_STUDENT_FACTOR FOREIGN KEY (student_factor_id) REFERENCES students_factors (id) ON DELETE CASCADE;
 
 -- classes
 ALTER TABLE classes
@@ -318,7 +381,7 @@ ALTER TABLE notice
   ADD CONSTRAINT FK_NOTICE_ASSIGNMENTS FOREIGN KEY (assignment_id) REFERENCES quest_assignments (assignment_id) ON DELETE SET NULL,
   ADD CONSTRAINT FK_NOTICE_GROUP_QUESTS FOREIGN KEY (group_quest_id) REFERENCES group_quests (group_quest_id) ON DELETE SET NULL,
   ADD CONSTRAINT FK_NOTICE_RAIDS FOREIGN KEY (raid_id) REFERENCES raids (raid_id) ON DELETE SET NULL,
-  ADD INDEX IDX_NOTICE_STUDIDENT_CREATED (student_id, created_at DESC),
+  ADD INDEX IDX_NOTICE_STUDENT_CREATED (student_id, created_at DESC),
   ADD INDEX IDX_NOTICE_TYPE (notice_type);
 
 -- action_logs
@@ -330,6 +393,10 @@ ALTER TABLE action_logs
   ADD INDEX IDX_LOGS_STUDENT_CREATED (student_id, created_at DESC),
   ADD INDEX IDX_LOGS_ACTION_TYPE (action_type);
 
+-- ai_learning_logs
+ALTER TABLE ai_learning_logs
+  ADD CONSTRAINT FK_AI_LOGS_ASSIGNMENTS FOREIGN KEY (assignment_id) REFERENCES quest_assignments (assignment_id) ON DELETE CASCADE,
+  ADD CONSTRAINT FK_AI_LOGS_STUDENTS FOREIGN KEY (student_id) REFERENCES students (member_id) ON DELETE CASCADE;
+
 -- FK 제약 조건 다시 활성화
 SET FOREIGN_KEY_CHECKS = 1;
-

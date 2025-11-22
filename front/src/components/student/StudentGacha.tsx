@@ -1,310 +1,370 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
-import { useAuth, StudentUser } from "../../contexts/AppContext";
+import { useAuth } from "../../contexts/AppContext";
 import { get, post } from "../../utils/api";
+import { IMAGES } from '../../styles/images';
+import { FishIcon } from '../FishIcon';
+import { FishAnimation } from '../FishAnimation';
+import { FISH_ICONS } from '../../utils/sprite-helpers';
 
 interface Fish {
-  id: string;
-  name: string;
-  rarity: 'common' | 'rare' | 'legend';
-  image: string;
+  fish_id: number;
+  fish_name: string;
+  grade: 'COMMON' | 'RARE' | 'LEGENDARY';
+  is_new: boolean;
+  current_count: number;
+  image_url: string;
 }
 
-type FishGrade = 'COMMON' | 'RARE' | 'LEGENDARY';
+const BASE_SPRITE_SIZE = 24;
+const MODAL_SCALE = 3;
 
 export function StudentGacha() {
-  const { user, isAuthenticated, userType, updateUser } = useAuth();
+  const { user, isAuthenticated, userType, access_token } = useAuth();
 
   const [isResultOpen, setIsResultOpen] = useState(false);
   const [isProbabilityOpen, setIsProbabilityOpen] = useState(false);
   const [resultFish, setResultFish] = useState<Fish | null>(null);
-  const [currentCoral, setCurrentCoral] = useState<number>(0);
-  const [gachaCost, setGachaCost] = useState<number>(10);
-  const [isLoading, setIsLoading] = useState(false);
+
+  const [gachaCost, setGachaCost] = useState(10);
+  const [studentCoral, setStudentCoral] = useState(100);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
-  const [probabilityTable, setProbabilityTable] = useState<Array<{
-    grade: string;
-    displayName: string;
-    ratePercent: number;
-  }>>([]);
 
-  // FishGrade를 rarity로 변환
-  const gradeToRarity = (grade: FishGrade): 'common' | 'rare' | 'legend' => {
-    switch (grade) {
-      case 'COMMON':
-        return 'common';
-      case 'RARE':
-        return 'rare';
-      case 'LEGENDARY':
-        return 'legend';
-    }
-  };
+  const probabilityTable = [
+    { rarity: 'COMMON', name: '커먼', rate: '70%', color: 'bg-gray-400' },
+    { rarity: 'RARE', name: '레어', rate: '25%', color: 'bg-blue-500' },
+    { rarity: 'LEGENDARY', name: '레전더리', rate: '5%', color: 'bg-yellow-600' },
+  ];
 
-  // 가챠 정보 가져오기
   useEffect(() => {
-    const fetchGachaInfo = async () => {
-      if (!isAuthenticated || userType !== 'student') return;
-
-      try {
+    if (isAuthenticated && userType === 'student' && access_token) {
+      const fetchGachaInfo = async () => {
         setIsLoading(true);
-        const response = await get('/api/v1/gacha/info');
-        
-        if (!response.ok) {
-          throw new Error('가챠 정보를 가져오는데 실패했습니다.');
-        }
+        setError(null);
+        try {
+          const response = await get('/api/v1/gacha/info');
 
-        const result = await response.json();
-        const gachaInfo = result.data;
-        
-        setCurrentCoral(gachaInfo.student_coral ?? 0);
-        setGachaCost(gachaInfo.gacha_cost ?? 10);
-        
-        // 확률표 설정
-        if (gachaInfo.probability_table && Array.isArray(gachaInfo.probability_table)) {
-          // 백엔드에서 받은 데이터를 안전하게 매핑
-          const mappedTable = gachaInfo.probability_table.map((item: any) => ({
-            grade: item.grade || '',
-            displayName: item.display_name || item.displayName || '',
-            ratePercent: item.rate_percent != null ? Number(item.rate_percent) : (item.ratePercent != null ? Number(item.ratePercent) : 0)
-          }));
-          setProbabilityTable(mappedTable);
-        }
-      } catch (error) {
-        console.error('Failed to fetch gacha info:', error);
-        // 기본값 사용
-        const currentUser = user as StudentUser;
-        if (currentUser) {
-          setCurrentCoral(currentUser.coral ?? 0);
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    };
+          if (!response.ok) {
+            throw new Error('가챠 정보를 불러오는데 실패했습니다.');
+          }
 
-    fetchGachaInfo();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated, userType]);
+          const result = await response.json();
+
+          if (result.success) {
+            setStudentCoral(result.data.student_coral);
+            setGachaCost(result.data.gacha_cost);
+          } else {
+            throw new Error(result.message || '데이터 포맷 오류');
+          }
+        } catch (err) {
+          setError(err instanceof Error ? err.message : '알 수 없는 오류 발생');
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      fetchGachaInfo();
+    }
+  }, [isAuthenticated, userType, access_token]);
 
   //로그인 여부 확인
   if (!isAuthenticated || !user) {
-    return <div className="p-4">로그인 정보 로딩 중...</div>;
+    return <div className="p-6">로그인 정보 확인 중...</div>;
   }
 
   if (userType !== 'student') {
-    return <div className="p-6">학생 전용 페이지입니다.</div>;
+    return <div className="p-6">접근 권한이 없습니다.</div>;
   }
 
-  const hasEnoughCoral = currentCoral >= gachaCost;
+  // 가챠 정보 로딩 중
+  if (isLoading) {
+    return <div className="p-4">가챠 정보 로딩 중...</div>;
+  }
+
+  // 에러 발생 시
+  if (error) {
+    return <div className="p-4 text-red-500">오류: {error}</div>;
+  }
 
   const drawGacha = async () => {
-    if (!hasEnoughCoral) {
+    if (studentCoral < gachaCost) {
       alert('코랄이 부족합니다!');
       return;
     }
 
-    if (isDrawing) return; // 중복 요청 방지
+    setIsDrawing(true);
+    setResultFish(null);
 
-    try {
-      setIsDrawing(true);
-      
-      const response = await post('/api/v1/gacha/draw', {});
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        if (response.status === 400 && errorData.error_code === 'INSUFFICIENT_CORAL') {
-          alert('코랄이 부족합니다!');
+    setTimeout(async () => {
+      try {
+        const response = await post('/api/v1/gacha/draw', {
+          coral: studentCoral
+        });
+
+        const result = await response.json();
+
+        // 가챠 뽑기 로직
+        if (result.success) {
+          // 가챠 성공
+          setResultFish(result.data.drawn_fish);
+          setStudentCoral(result.data.remaining_coral); // 남은 코랄 업데이트
+          setIsResultOpen(true);
+          console.log('Gacha result:', result.data);
         } else {
-          alert(errorData.message || '가챠 뽑기에 실패했습니다.');
+          // 가챠 실패 (예: 코랄 부족)
+          if (result.error_code === 'INSUFFICIENT_CORAL') {
+            alert('코랄이 부족합니다. (서버 체크)');
+            // 서버 값으로 코랄 동기화
+            if (result.details && typeof result.details.available === 'number') {
+              setStudentCoral(result.details.available);
+            }
+          } else {
+            alert(`오류: ${result.message}`);
+          }
         }
-        return;
+      } catch (err) {
+        console.error('Gacha draw error:', err);
+        alert('가챠 뽑기 중 오류가 발생했습니다.');
+      } finally {
+        setIsDrawing(false); // 애니메이션 종료
       }
+    }, 2500); // 2.5초 지연
+  };
 
-      const result = await response.json();
-      const drawResult = result.data;
-      
-      // 뽑은 물고기 정보 설정
-      const drawnFish: Fish = {
-        id: String(drawResult.drawn_fish.fish_id),
-        name: drawResult.drawn_fish.fish_name,
-        rarity: gradeToRarity(drawResult.drawn_fish.grade),
-        image: `fish${drawResult.drawn_fish.fish_id}`
-      };
-
-      setResultFish(drawnFish);
-      setIsResultOpen(true);
-
-      // 코랄 정보 업데이트
-      const newCoral = drawResult.remaining_coral ?? 0;
-      setCurrentCoral(newCoral);
-      
-      // 사용자 정보도 업데이트
-      updateUser({ coral: newCoral });
-
-      console.log('Gacha result:', drawResult);
-    } catch (error) {
-      console.error('Failed to draw gacha:', error);
-      alert('가챠 뽑기에 실패했습니다. 다시 시도해주세요.');
-    } finally {
-      setIsDrawing(false);
+  const getRarityBadge = (grade: Fish['grade']) => {
+    switch (grade) {
+      case 'COMMON':
+        return <Badge className="bg-gray-400">커먼</Badge>;
+      case 'RARE':
+        return <Badge className="bg-blue-500">레어</Badge>;
+      case 'LEGENDARY':
+        return <Badge className="bg-yellow-600">레전더리</Badge>;
     }
   };
 
-  const getRarityBadge = (rarity: Fish['rarity']) => {
-    switch (rarity) {
-      case 'common':
-        return <Badge className="bg-gray-400">커먼</Badge>;
-      case 'rare':
-        return <Badge className="bg-gray-600">레어</Badge>;
-      case 'legend':
-        return <Badge className="bg-black">레전드</Badge>;
+  const getRarityText = (grade: Fish['grade']) => {
+    switch (grade) {
+      case 'COMMON': return <span style={{ color: "gray", fontWeight: "bold" }}>[커먼]</span>;
+      case 'RARE': return <span style={{ color: "blue", fontWeight: "bold" }}>[레어]</span>;
+      case 'LEGENDARY': return <span style={{ color: "#ffd700", fontWeight: "bold" }}>[레전더리]</span>;
     }
+  };
+
+  const renderGachaFish = (fish: Fish) => {
+    const scale = MODAL_SCALE;
+    const finalSize = scale * BASE_SPRITE_SIZE;
+
+    const spriteInfo = FISH_ICONS[fish.fish_id];
+    const isAnimated = spriteInfo?.isAnimated;
+    const animationData = spriteInfo?.animation;
+
+    const IconComponent = isAnimated && animationData ? (
+      <FishAnimation
+        spriteUrl={animationData.url}
+        totalFrames={animationData.frames}
+        scale={scale}
+        duration={animationData.duration}
+      />
+    ) : (
+      <FishIcon
+        fishId={fish.fish_id}
+        scale={scale}
+      />
+    );
+
+    return (
+      <div style={{
+        width: `${finalSize}px`,
+        height: `${finalSize}px`,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        {IconComponent}
+      </div>
+    );
   };
 
   return (
-    <div className="p-4 space-y-6 bg-white">
-      {/* 헤더 */}
-      <div className="text-center">
-        <h1 className="text-xl font-medium text-black mb-2">가챠 머신</h1>
-        <p className="text-gray-600">새로운 물고기를 획득해보세요!</p>
-      </div>
+    <div className="p-4 space-y-6 pb-20 max-w-screen-xl mx-auto" style={{ minHeight: "100vh", backgroundImage: "var(--bg-url)", backgroundRepeat: "repeat" }}>
 
-      {/* 가챠 머신 */}
-      <Card className="border-2 border-gray-300">
-        <CardContent className="p-6">
-          {/* 가챠 머신 이미지 */}
-          <div className="w-full h-48 bg-gray-200 rounded mb-6 flex items-center justify-center">
-            <div className="text-center">
-              <div className="w-20 h-20 bg-gray-300 rounded-full mx-auto mb-2"></div>
-              <span className="text-gray-600">가챠 머신</span>
+      {/* 가챠 머신 윈도우 */}
+      <div className="window" style={{ width: "100%" }}>
+        <div className="title-bar">
+          <div className="title-bar-text">&nbsp;가챠 머신</div>
+          <div className="title-bar-controls">
+            <button aria-label="Help" onClick={() => setIsProbabilityOpen(true)} />
+          </div>
+        </div>
+
+        <div className="window-body text-center">
+          <p style={{ marginBottom: "10px" }}>새로운 물고기를 획득하세요!</p>
+
+          {/* 가챠 머신 시각화 - 슬롯 머신 형태로 변경 */}
+          <div className="sunken-panel" style={{
+            height: "150px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "#e0e0e0",
+            marginBottom: "15px",
+            border: "2px outset #dfdfdf", // 98.css 스타일 테두리
+            boxShadow: "inset -1px -1px #0a0a0a, inset 1px 1px #ffffff, inset -2px -2px #808080, inset 2px 2px #dfdfdf",
+            position: "relative" // 애니메이션 자식 요소를 위해 relative
+          }}>
+            {isDrawing ? (
+              // 애니메이션 중일 때 로딩 스피너 표시
+              <div className="gacha-animation">
+                <img
+                  src={IMAGES.loadingFish}
+                  alt="Gacha Loading..."
+                  style={{ height: "100px", objectFit: "cover", imageRendering: "pixelated" }}
+                />
+              </div>
+            ) : (
+              // 평소에는 "DRAW" 텍스트 또는 이미지
+              <div style={{ fontSize: "2.5em", fontWeight: "bold", color: "#666" }}>DRAW</div>
+            )}
+          </div>
+
+          {/* 상태 표시창 */}
+          <fieldset style={{ marginBottom: "15px" }}>
+            <legend>Status</legend>
+            <div style={{ display: "flex", justifyContent: "space-around" }}>
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontSize: "12px", color: "#666" }}>보유 코랄</div>
+                <div style={{ fontSize: "18px", fontWeight: "bold" }}>{studentCoral}</div>
+              </div>
+              <div style={{ width: "2px", background: "#808080" }}></div>
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontSize: "12px", color: "#666" }}>필요한 코랄</div>
+                <div style={{ fontSize: "18px", fontWeight: "bold", color: studentCoral < gachaCost ? "red" : "black" }}>
+                  {gachaCost}
+                </div>
+              </div>
             </div>
-          </div>
+          </fieldset>
 
-          {/* 현재 코랄 */}
-          <div className="text-center mb-4">
-            <p className="text-sm text-gray-600">보유 코랄</p>
-            <p className="text-2xl font-medium text-black">{currentCoral}</p>
-          </div>
-
-          {/* 필요 코랄 */}
-          <div className="text-center mb-6">
-            <p className="text-sm text-gray-600">필요한 코랄</p>
-            <p className="text-lg text-black">{gachaCost}</p>
-          </div>
-
-          {/* 가챠 버튼 */}
-          <Button
+          {/* 뽑기 버튼 */}
+          <button
             onClick={drawGacha}
-            disabled={!hasEnoughCoral || isDrawing || isLoading}
-            className="w-full bg-black text-white hover:bg-gray-800 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed"
+            disabled={studentCoral < gachaCost || isDrawing}
+            style={{ width: "100%", height: "40px", fontWeight: "bold", fontSize: "14px" }}
           >
-            {isLoading ? '로딩 중...' : isDrawing ? '뽑는 중...' : !hasEnoughCoral ? '코랄 부족' : '가챠 뽑기'}
-          </Button>
-        </CardContent>
-      </Card>
+            {isDrawing ? '뽑는 중...' : (studentCoral < gachaCost ? '코랄 부족' : '가챠 뽑기')}
+          </button>
 
-      {/* 보상 가이드 버튼 */}
-      <div className="flex justify-center">
-        <Button
-          onClick={() => setIsProbabilityOpen(true)}
-          className="bg-gray-600 text-white hover:bg-gray-700 px-6 py-2"
-        >
-          보상 가이드
-        </Button>
+          <div style={{ marginTop: "10px" }}>
+            <button onClick={() => setIsProbabilityOpen(true)} style={{ minWidth: "120px" }}>
+              보상 가이드
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* 가챠 결과 모달 */}
-      <Dialog open={isResultOpen} onOpenChange={setIsResultOpen}>
-        <DialogContent className="bg-white border-2 border-gray-300">
-          <DialogHeader>
-            <DialogTitle className="text-black text-center">가챠 결과!</DialogTitle>
-          </DialogHeader>
-          <div className="text-center space-y-4">
-            {/* 물고기 이미지 */}
-            <div className={`w-32 h-32 rounded mx-auto flex items-center justify-center ${resultFish?.rarity === 'legend' ? 'bg-gray-800' :
-              resultFish?.rarity === 'rare' ? 'bg-gray-600' : 'bg-gray-400'
-              }`}>
-              <span className="text-white">물고기</span>
+      {/* [모달] 가챠 결과 */}
+      {isResultOpen && resultFish && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="window" style={{ width: '90%', maxWidth: '400px' }}>
+            <div className="title-bar">
+              <div className="title-bar-text">획득 성공!</div>
+              <div className="title-bar-controls">
+                <button aria-label="Close" onClick={() => setIsResultOpen(false)} />
+              </div>
             </div>
+            <div className="window-body text-center">
+              {/* 물고기 이미지 표시 */}
+              <div className="sunken-panel" style={{
+                width: "120px", height: "120px", margin: "0 auto 15px auto",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                background: resultFish.grade === 'LEGENDARY' ? '#fffacd' : '#fff'
+              }}>
+                {renderGachaFish(resultFish)}
+              </div>
 
-            {/* 물고기 정보 */}
-            <div>
-              <h3 className="text-lg font-medium text-black">{resultFish?.name}</h3>
-              {resultFish && getRarityBadge(resultFish.rarity)}
-            </div>
-
-            {/* 희귀도에 따른 효과 설명 */}
-            {resultFish?.rarity === 'legend' && (
-              <p className="text-sm text-gray-600">✨ 전설급 물고기를 획득했습니다! ✨</p>
-            )}
-            {resultFish?.rarity === 'rare' && (
-              <p className="text-sm text-gray-600">⭐ 희귀한 물고기를 획득했습니다!</p>
-            )}
-
-            <Button
-              onClick={() => setIsResultOpen(false)}
-              className="w-full bg-black text-white"
-            >
-              확인
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* 확률표 모달 */}
-      <Dialog open={isProbabilityOpen} onOpenChange={setIsProbabilityOpen}>
-        <DialogContent className="bg-white border-2 border-gray-300">
-          <DialogHeader>
-            <DialogTitle className="text-black text-center">보상 가이드</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="text-center mb-4">
-              <p className="text-sm text-gray-600">가챠에서 획득할 수 있는 물고기의 확률입니다</p>
-            </div>
-
-            <div className="space-y-3">
-              {probabilityTable.length > 0 ? (
-                probabilityTable.map((item) => {
-                  const colorClass = item.grade === 'LEGENDARY' ? 'bg-black' :
-                                    item.grade === 'RARE' ? 'bg-gray-600' : 'bg-gray-400';
-                  return (
-                    <div key={item.grade} className="flex items-center justify-between p-4 border-2 border-gray-200 rounded-lg bg-gray-50">
-                      <div className="flex items-center space-x-3">
-                        <div className={`w-6 h-6 rounded ${colorClass}`}></div>
-                        <span className="text-black font-medium text-lg">{item.displayName}</span>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-black font-bold text-xl">
-                          {item.ratePercent != null ? item.ratePercent.toFixed(1) : '0.0'}%
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })
-              ) : (
-                <div className="text-center text-gray-600">확률 정보를 불러오는 중...</div>
+              {resultFish.is_new && (
+                <div style={{ color: "red", fontWeight: "bold", animation: "blink 1s infinite" }}>NEW!</div>
               )}
-            </div>
 
-            <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <h4 className="text-sm font-medium text-blue-800 mb-2">💡 가챠 팁</h4>
-              <p className="text-xs text-blue-600">
-                • 코랄 10개로 가챠 1회 뽑기 가능<br />
-                • 레전드 등급은 10% 확률로 매우 희귀합니다<br />
+              <h3 style={{ margin: "5px 0" }}>{resultFish.fish_name}</h3>
+              <div style={{ marginBottom: "10px" }}>{getRarityText(resultFish.grade)}</div>
+
+              <p style={{ fontSize: "12px", color: "#666", marginBottom: "15px" }}>
+                (현재 보유: {resultFish.current_count}마리)
               </p>
-            </div>
 
-            <Button
-              onClick={() => setIsProbabilityOpen(false)}
-              className="w-full bg-gray-600 text-white hover:bg-gray-700"
-            >
-              확인
-            </Button>
+              <button onClick={() => setIsResultOpen(false)} style={{ minWidth: "100px" }}>
+                확인
+              </button>
+            </div>
           </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+      )}
+
+      {/* [모달] 확률표 */}
+      {isProbabilityOpen && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="window" style={{ width: '90%', maxWidth: '400px' }}>
+            <div className="title-bar">
+              <div className="title-bar-text">확률표</div>
+              <div className="title-bar-controls">
+                <button aria-label="Close" onClick={() => setIsProbabilityOpen(false)} />
+              </div>
+            </div>
+            <div className="window-body">
+              <fieldset style={{ marginBottom: "15px" }}>
+                <legend>등급별 확률</legend>
+                <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+                  {probabilityTable.map((item) => (
+                    <li key={item.rarity} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", borderBottom: "1px dotted #ccc" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <div style={{ width: "12px", height: "12px", background: item.color, border: "1px solid black" }}></div>
+                        <span>{item.name}</span>
+                      </div>
+                      <span style={{ fontWeight: "bold" }}>{item.rate}</span>
+                    </li>
+                  ))}
+                </ul>
+              </fieldset>
+
+              <div className="sunken-panel" style={{ padding: "8px", background: "#fff", fontSize: "12px", marginBottom: "15px" }}>
+                <strong>💡 Tip:</strong><br />
+                레전더리 물고기는 매우 희귀합니다.<br />
+                코랄을 모아 도전해보세요!
+              </div>
+
+              <div style={{ textAlign: "center" }}>
+                <button onClick={() => setIsProbabilityOpen(false)}>닫기</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes blink {
+          0% { opacity: 1; }
+          50% { opacity: 0; }
+          100% { opacity: 1; }
+        }
+        @keyframes flash {
+          0% { color: blue; }
+          50% { color: red; }
+          100% { color: blue; }
+        }
+        .gacha-animation {
+          position: absolute;
+          width: 100%;
+          height: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background-color: #d0d0d0; /* 애니메이션 중 배경색 */
+          z-index: 1;
+        }
+      `}</style>
     </div>
   );
 }
