@@ -1,199 +1,376 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { Card, CardContent } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
-import { Plus, Users, Copy, Check, Sword, Trophy, Loader2 } from "lucide-react";
+import { Plus, Users, Copy, Sword } from "lucide-react";
 import { Progress } from "../ui/progress";
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { SectionCard } from "../common/SectionCard";
+import { get, post } from "../../utils/api";
 import { useAuth } from "../../contexts/AppContext";
-import { get } from "../../utils/api";
 
-interface ApiQuestProgress {
+interface ClassSummaryOption {
+  id: number;
+  name: string;
+}
+
+interface QuestProgress {
   completed: number;
   required: number;
 }
 
-interface ApiGroupQuest {
-  quest_id: number;
+interface OngoingQuest {
+  questId: number;
   title: string;
-  progress: ApiQuestProgress;
+  progress: QuestProgress;
 }
 
-interface ApiBossHp {
+interface BossHpInfo {
   current: number;
   total: number;
   percentage: number;
 }
 
-interface ApiRaid {
-  raid_id: number;
+interface OngoingRaid {
+  raidId: number;
   title: string;
-  boss_hp: ApiBossHp;
+  bossHp: BossHpInfo;
   participants: number;
-  end_date: string;
+  endDate: string;
+  status: 'ACTIVE' | 'COMPLETED' | 'EXPIRED' | 'TERMINATED';
 }
 
-interface ApiClassDetails {
-  class_id: number;
-  class_name: string;
-  ongoing_group_quests: ApiGroupQuest[];
-  ongoing_raid: ApiRaid | null;
-  invite_code: string; // 반 api에도 invite_code 필요
-}
-
-// 남은 일수 계산 헬퍼 함수
-function calculateDaysLeft(endDateString: string): number {
-  if (!endDateString) return 0;
-  try {
-    const end = new Date(endDateString);
-    const now = new Date();
-    // 남은 시간이 0 미만이면 0을 반환
-    const diffTime = Math.max(end.getTime() - now.getTime(), 0);
-    // 남은 일수를 올림하여 계산
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays;
-  } catch (e) {
-    return 0;
-  }
+interface ClassDetail {
+  classId: number;
+  className: string;
+  inviteCode: string;
+  ongoingGroupQuests: OngoingQuest[];
+  ongoingRaid: OngoingRaid | null;
 }
 
 export function ClassManagePage() {
   const navigate = useNavigate();
-  const { currentClassId, access_token } = useAuth();
-
-  const [classDetails, setClassDetails] = useState<ApiClassDetails | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const location = useLocation();
+  const { classId: urlClassId } = useParams<{ classId?: string }>();
+  const locationState = location.state as { classId?: number } | null;
+  const { currentClassId, setCurrentClass } = useAuth();
 
   const [isRaidModalOpen, setIsRaidModalOpen] = useState(false);
-  const [isCopied, setIsCopied] = useState(false);
+  const [classListLoading, setClassListLoading] = useState(true);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  // URL 파라미터 > currentClassId (전역 상태) > location.state 순서로 우선순위 설정
+  const [selectedClassId, setSelectedClassId] = useState<number | null>(
+    urlClassId ? Number(urlClassId) : (currentClassId ? Number(currentClassId) : (locationState?.classId ?? null))
+  );
+  const [classDetail, setClassDetail] = useState<ClassDetail | null>(null);
+  const [raidActionMessage, setRaidActionMessage] = useState<string | null>(null);
+  const [isTerminating, setIsTerminating] = useState(false);
+
+  const activeQuests = classDetail?.ongoingGroupQuests ?? [];
+  const activeRaid = classDetail?.ongoingRaid ?? null;
+  const isActiveRaid = activeRaid?.status === 'ACTIVE';
+
+  // URL 파라미터가 변경되면 selectedClassId 업데이트 (최우선)
+  useEffect(() => {
+    if (urlClassId) {
+      const parsedClassId = Number(urlClassId);
+      if (!isNaN(parsedClassId)) {
+        // 숫자로 변환 가능하면 숫자 ID 사용
+        if (parsedClassId !== selectedClassId) {
+          setSelectedClassId(parsedClassId);
+          // 전역 상태에도 저장
+          if (setCurrentClass) {
+            setCurrentClass(String(parsedClassId));
+          }
+        }
+      } else {
+        // 숫자가 아니면 반 이름으로 간주하고 반 목록에서 찾기
+        const findClassByName = async () => {
+          try {
+            const response = await get('/api/v1/classes');
+            const json = await response.json();
+            if (response.ok && json.data?.classes?.length > 0) {
+              const foundClass = json.data.classes.find(
+                (c: any) => c.class_name === urlClassId || c.className === urlClassId
+              );
+              if (foundClass) {
+                const classId = foundClass.class_id ?? foundClass.classId;
+                setSelectedClassId(classId);
+                // 전역 상태에도 저장
+                if (setCurrentClass) {
+                  setCurrentClass(String(classId));
+                }
+                // URL도 숫자 ID로 업데이트
+                navigate(`/teacher/class/${classId}`, { replace: true });
+              } else {
+                setError(`반 "${urlClassId}"을 찾을 수 없습니다.`);
+              }
+            }
+          } catch (err: any) {
+            console.error('반 목록 조회 실패:', err);
+            setError('반 정보를 불러오지 못했습니다.');
+          }
+        };
+        findClassByName();
+      }
+    } else if (currentClassId && !selectedClassId) {
+      // URL 파라미터가 없고 currentClassId가 있으면 그것을 사용
+      const parsedClassId = Number(currentClassId);
+      if (!isNaN(parsedClassId)) {
+        setSelectedClassId(parsedClassId);
+        navigate(`/teacher/class/${parsedClassId}`, { replace: true });
+      }
+    }
+  }, [urlClassId, selectedClassId, currentClassId, navigate, setCurrentClass]);
+
+  // selectedClassId가 변경되면 URL도 업데이트 (URL 파라미터와 다를 때만)
+  useEffect(() => {
+    if (selectedClassId) {
+      const currentUrlClassId = urlClassId ? Number(urlClassId) : null;
+      if (currentUrlClassId !== selectedClassId) {
+        navigate(`/teacher/class/${selectedClassId}`, { replace: true });
+      }
+    }
+  }, [selectedClassId, urlClassId, navigate]);
 
   useEffect(() => {
-
-    if (!currentClassId || !access_token) {
-      setError("반 정보를 불러올 수 없습니다. (인증 오류)");
-      setIsLoading(false);
-      return;
-    }
-
-
-    const fetchClassData = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        // API 명세서에 맞는 엔드포인트로 변경
-        const response = await get(`/api/v1/classes/${currentClassId}`);
-
-        if (!response.ok) {
-          const errData = await response.json();
-          throw new Error(errData.message || "데이터를 불러오는 데 실패했습니다.");
+    // URL 파라미터나 location.state, currentClassId에서 classId를 받지 못했으면 첫 번째 반 가져오기
+    if (!selectedClassId) {
+      // currentClassId가 있으면 그것을 사용
+      if (currentClassId) {
+        const parsedClassId = Number(currentClassId);
+        if (!isNaN(parsedClassId)) {
+          setSelectedClassId(parsedClassId);
+          navigate(`/teacher/class/${parsedClassId}`, { replace: true });
+          setClassListLoading(false);
+          return;
         }
-        const data = await response.json();
-        if (data.success) {
-          setClassDetails(data.data);
-        } else {
-          throw new Error(data.message || "데이터 포맷 오류");
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "알 수 없는 오류");
-      } finally {
-        setIsLoading(false);
       }
-    };
+      
+      // currentClassId도 없으면 첫 번째 반 가져오기
+      const fetchFirstClass = async () => {
+        setClassListLoading(true);
+        try {
+          const response = await get('/api/v1/classes');
+          const json = await response.json();
+          if (response.ok && json.data?.classes?.length > 0) {
+            const firstClass = json.data.classes[0];
+            const firstClassId = firstClass.class_id ?? firstClass.classId;
+            setSelectedClassId(firstClassId);
+            // 전역 상태에도 저장
+            if (setCurrentClass) {
+              setCurrentClass(String(firstClassId));
+            }
+            // URL 업데이트는 위의 useEffect에서 처리됨
+          }
+        } catch (err: any) {
+          setError(err.message ?? '반 정보를 불러오지 못했습니다.');
+        } finally {
+          setClassListLoading(false);
+        }
+      };
+      fetchFirstClass();
+    } else {
+      setClassListLoading(false);
+    }
+  }, [selectedClassId, currentClassId, navigate, setCurrentClass]);
 
-    fetchClassData();
-  }, [currentClassId, access_token]);
+  const loadClassDetail = useCallback(async (classId: number) => {
+    setDetailLoading(true);
+    setError(null);
+    try {
+      const response = await get(`/api/v1/classes/${classId}`);
+      const json = await response.json();
+      if (!response.ok) {
+        throw new Error(json?.message ?? '반 상세 정보를 불러오지 못했습니다.');
+      }
+      setClassDetail(json.data);
+    } catch (err: any) {
+      setError(err.message ?? '반 상세 정보를 불러오지 못했습니다.');
+      setClassDetail(null);
+    } finally {
+      setDetailLoading(false);
+    }
+  }, []);
 
-  if (isLoading) {
+  useEffect(() => {
+    if (selectedClassId) {
+      loadClassDetail(selectedClassId);
+    } else {
+      setClassDetail(null);
+    }
+  }, [selectedClassId, loadClassDetail]);
+
+  const handleCopyCode = () => {
+    if (!classDetail?.inviteCode) return;
+    navigator.clipboard.writeText(classDetail.inviteCode)
+      .then(() => alert('초대 코드가 복사되었습니다!'))
+      .catch(() => alert('복사에 실패했습니다.'));
+  };
+
+  const handleTerminateRaid = async () => {
+    if (!activeRaid) return;
+    const terminatedRaidId = activeRaid.raidId;
+    setIsTerminating(true);
+    setRaidActionMessage(null);
+    try {
+      const response = await post(`/api/v1/raids/${activeRaid.raidId}/terminate`);
+      const json = await response.json();
+      if (!response.ok) {
+        throw new Error(json?.message ?? '레이드 종료에 실패했습니다.');
+      }
+      setRaidActionMessage('레이드를 종료했습니다.');
+      if (selectedClassId) {
+        loadClassDetail(selectedClassId);
+      }
+      navigate('/teacher/raid/manage', {
+        state: {
+          initialFilter: 'ENDED',
+          focusRaidId: terminatedRaidId
+        }
+      });
+    } catch (err: any) {
+      setRaidActionMessage(err.message ?? '레이드 종료에 실패했습니다.');
+    } finally {
+      setIsTerminating(false);
+    }
+  };
+
+  const handleRefresh = () => {
+    if (selectedClassId) {
+      loadClassDetail(selectedClassId);
+    }
+  };
+
+  const daysLeftLabel = useMemo(() => {
+    if (!activeRaid?.endDate) return null;
+    const now = new Date();
+    const end = new Date(activeRaid.endDate);
+    const diff = Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    if (diff <= 0) {
+      return '마감됨';
+    }
+    return `${diff}일 남음`;
+  }, [activeRaid?.endDate]);
+
+  const raidHpPercentage = activeRaid
+    ? activeRaid.bossHp?.percentage ?? (
+      activeRaid.bossHp?.total
+        ? Math.min(100, Math.round((activeRaid.bossHp.current / activeRaid.bossHp.total) * 100))
+        : 0
+    )
+    : 0;
+
+  const raidHpLabel = activeRaid
+    ? `${activeRaid.bossHp?.current?.toLocaleString() ?? 0} / ${activeRaid.bossHp?.total?.toLocaleString() ?? 0}`
+    : "";
+
+  const isInitialLoading = classListLoading && !classDetail;
+
+  const endDateLabel = useMemo(() => {
+    if (!activeRaid?.endDate) {
+      return null;
+    }
+    const date = new Date(activeRaid.endDate);
+    return isNaN(date.getTime()) ? null : date.toLocaleString();
+  }, [activeRaid?.endDate]);
+
+  if (isInitialLoading) {
     return (
-      <div className="flex-1 p-6 flex justify-center items-center">
-        <Loader2 className="w-6 h-6 animate-spin mr-2" />
-        반 정보를 불러오는 중...
+      <div className="p-6">
+        데이터를 불러오는 중입니다...
       </div>
     );
   }
 
-  if (error) {
-    return <div className="flex-1 p-6 text-red-600">오류: {error}</div>;
-  }
-
-  if (!classDetails) {
-    return <div className="flex-1 p-6">반 정보를 찾을 수 없습니다.</div>;
-  }
-
-  // classDetails에서 데이터 추출
-  const { class_name, ongoing_group_quests=[], ongoing_raid, invite_code } = classDetails;
-
-  // 레이드 상세 모달용 변수
-  const activeRaid = ongoing_raid;
-  const daysLeft = activeRaid ? calculateDaysLeft(activeRaid.end_date) : 0;
-
-  const handleCopyCode = () => {
-    if (!invite_code || isCopied) return;
-
-    navigator.clipboard.writeText(invite_code)
-      .then(() => {
-        setIsCopied(true);
-        setTimeout(() => {
-          setIsCopied(false);
-        }, 2000);
-      })
-      .catch(err => {
-        console.error('클립보드 복사 실패:', err);
-        alert('복사에 실패했습니다.');
-      });
-  };
-
   return (
-    <div className="min-h-screen bg-white flex">
-      <div className="flex-1 border-l-2 border-gray-300">
+    <>
         {/* Header */}
-        <div className="border-b-2 border-gray-300 p-6">
-          <h1>{class_name}</h1>
-          <div className="flex items-center gap-4 mt-2">
-            <div className="flex items-center gap-2 text-sm">
-              <span className="text-gray-600">초대 코드:</span>
-              <code className="px-2 py-1 border-2 border-gray-300 bg-gray-100">
-                {invite_code}
-              </code>
+        <div className="border-b-2 border-gray-300 p-6 space-y-4">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h1>{classDetail?.className ?? '반을 선택하세요'}</h1>
+              <p className="text-sm text-gray-600 mt-1">
+                {detailLoading
+                  ? '반 정보를 불러오는 중입니다...'
+                  : classDetail
+                  ? '반 관리와 레이드 진행 상황을 확인하세요.'
+                  : '좌측 셀렉트 박스에서 반을 선택해주세요.'}
+              </p>
+            </div>
+            <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-3 w-full md:w-auto">
               <Button
-                variant="ghost"
-                size="sm"
-                className="border border-gray-300 hover:bg-gray-100"
-                onClick={handleCopyCode}
-                disabled={isCopied}
+                variant="outline"
+                className="border-2 border-gray-300 rounded-lg hover:bg-gray-100"
+                onClick={handleRefresh}
+                disabled={!selectedClassId || detailLoading}
               >
-                {isCopied ? (
-                  <Check className="w-3 h-3 text-green-600" />
-                ) : (
-                  <Copy className="w-3 h-3" />
-                )}
+                {detailLoading ? '새로고침 중...' : '정보 새로고침'}
               </Button>
             </div>
           </div>
+
+          {classDetail?.inviteCode && (
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-gray-600">초대 코드:</span>
+              <code className="px-2 py-1 border-2 border-gray-300 bg-gray-100">
+                {classDetail.inviteCode}
+              </code>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                className="border border-gray-300 hover:bg-gray-100"
+                onClick={handleCopyCode}
+              >
+                <Copy className="w-3 h-3" />
+              </Button>
+            </div>
+          )}
         </div>
+
+        {error && (
+          <div className="px-6 pt-4 text-sm text-red-600">{error}</div>
+        )}
 
         {/* Main Content */}
         <div className="p-6 space-y-6 max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
 
           {/* Quick Actions */}
-          <div className="flex gap-3 flex-wrap">
-            <Button
+          <div className="flex gap-2 flex-wrap">
+            <Button 
               className="border-2 border-gray-300 rounded-lg hover:bg-gray-100"
               variant="outline"
-              onClick={() => navigate('/teacher/students')}
+              onClick={() => {
+                // 우선순위: classDetail.classId > selectedClassId > currentClassId
+                // classDetail이 가장 정확한 현재 선택된 반 정보
+                const classIdToUse = classDetail?.classId 
+                  ?? selectedClassId 
+                  ?? (currentClassId ? Number(currentClassId) : null);
+                
+                console.log('학생 목록 조회 버튼 클릭:', {
+                  classDetailClassId: classDetail?.classId,
+                  selectedClassId,
+                  currentClassId,
+                  urlClassId,
+                  classIdToUse,
+                  className: classDetail?.className
+                });
+                
+                if (classIdToUse) {
+                  console.log('학생 목록 페이지로 이동:', `/teacher/students/${classIdToUse}`);
+                  navigate(`/teacher/students/${classIdToUse}`);
+                } else {
+                  console.error('classId가 없습니다. 반 관리 페이지로 리다이렉트');
+                  // classId가 없으면 반 관리 페이지로 리다이렉트
+                  navigate('/teacher/class');
+                }
+              }}
+              disabled={!classDetail?.classId && !selectedClassId && !currentClassId}
             >
               <Users className="w-4 h-4 mr-2" />
               학생 목록 조회
-            </Button>
-            <Button
-              className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
-              onClick={() => navigate('/teacher/class/create')}
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              반 생성하기
             </Button>
             <Button 
               className="border-2 border-gray-300 rounded-lg hover:bg-gray-100"
@@ -201,7 +378,7 @@ export function ClassManagePage() {
               onClick={() => navigate('/teacher/quest')}
             >
               <Plus className="w-4 h-4 mr-2" />
-              퀘스트 등록
+              + 퀘스트 등록
             </Button>
             <Button 
               className="border-2 border-gray-300 rounded-lg hover:bg-gray-100"
@@ -209,15 +386,15 @@ export function ClassManagePage() {
               onClick={() => navigate('/teacher/raid/create')}
             >
               <Plus className="w-4 h-4 mr-2" />
-              레이드 등록
+              + 레이드 등록
             </Button>
           </div>
 
           {/* Active Quests */}
-          <SectionCard
+          <SectionCard 
             title="현재 진행 중인 단체 퀘스트"
             headerAction={
-              <button
+              <button 
                 className="bg-black text-white px-4 py-2 rounded-lg border-2 border-black font-semibold"
                 onClick={() => navigate('/teacher/quest/group/manage')}
                 style={{ backgroundColor: '#000000', color: 'white' }}
@@ -226,63 +403,79 @@ export function ClassManagePage() {
               </button>
             }
           >
-            <div className="space-y-3 max-h-64 overflow-y-auto">
-              {ongoing_group_quests.length > 0 ? (
-                ongoing_group_quests.map((quest) => (
-                  <Card
-                    key={quest.quest_id}
-                    className="border-2 border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50"
-                  >
-                    <CardContent className="p-3">
-                      <div className="flex items-center justify-between mb-2">
-                        <h4>{quest.title}</h4>
-                        <Badge variant="outline" className="border-2 border-gray-300 rounded-lg">
-                          {quest.progress.completed}/{quest.progress.required}
-                        </Badge>
-                      </div>
-                      <Progress
-                        value={(quest.progress.completed / quest.progress.required) * 100}
-                        className="h-2"
-                      />
-                    </CardContent>
-                  </Card>
-                ))
-              ) : (
-                <p className="text-gray-600 text-center py-4">진행 중인 단체 퀘스트가 없습니다.</p>
-              )}
-            </div>
+            {detailLoading ? (
+              <p className="text-sm text-gray-500">퀘스트 정보를 불러오는 중입니다...</p>
+            ) : activeQuests.length > 0 ? (
+              <div className="space-y-3 max-h-64 overflow-y-auto">
+                {activeQuests.map((quest) => {
+                  const completed = quest.progress?.completed ?? 0;
+                  const required = quest.progress?.required ?? 0;
+                  const percentage = required > 0 ? (completed / required) * 100 : 0;
+                  return (
+                    <Card 
+                      key={quest.questId} 
+                      className="border-2 border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50"
+                    >
+                      <CardContent className="p-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <h4>{quest.title}</h4>
+                          <Badge variant="outline" className="border-2 border-gray-300 rounded-lg">
+                            {completed}/{required}
+                          </Badge>
+                        </div>
+                        <Progress 
+                          value={percentage} 
+                          className="h-2"
+                        />
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">진행 중인 단체 퀘스트가 없습니다.</p>
+            )}
           </SectionCard>
 
           {/* Active Raid */}
           <Card className="border-2 border-gray-300 rounded-lg">
-            <CardContent className="p-4">
-              <h3 className="mb-4">현재 진행 중인 레이드</h3>
-              {activeRaid ? (
+            <CardContent className="p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <h3>현재 진행 중인 레이드</h3>
+                {raidActionMessage && (
+                  <span className="text-xs text-gray-600">{raidActionMessage}</span>
+                )}
+              </div>
+              {detailLoading ? (
+                <p className="text-sm text-gray-500">레이드 정보를 불러오는 중입니다...</p>
+              ) : activeRaid && isActiveRaid ? (
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <h4>{activeRaid.title}</h4>
-                    <Badge variant="outline" className="border-2 border-gray-300 rounded-lg">
-                      {daysLeft}일 남음
-                    </Badge>
+                    <div>
+                      <h4>{activeRaid.title}</h4>
+                      <p className="text-xs text-gray-500 mt-1">
+                        종료일: {endDateLabel ?? '정보 없음'}
+                      </p>
+                    </div>
+                    {daysLeftLabel && (
+                      <Badge variant="outline" className="border-2 border-gray-300 rounded-lg">
+                        {daysLeftLabel}
+                      </Badge>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600">보스 HP</span>
-                      <span>{activeRaid.boss_hp.percentage}%</span>
+                      <span>{raidHpLabel}</span>
                     </div>
-                    <div className="border-2 border-gray-300 h-6 overflow-hidden">
-                      <div
-                        className="h-full bg-black"
-                        style={{ width: `${activeRaid.boss_hp.percentage}%` }}
-                      />
-                    </div>
+                    <Progress value={raidHpPercentage} className="h-2" />
                   </div>
                   <div className="flex justify-between text-sm border-t-2 border-gray-300 pt-3">
                     <span className="text-gray-600">참여자</span>
-                    <span>{activeRaid.participants}명</span>
+                    <span>{activeRaid.participants ?? 0}명</span>
                   </div>
                   <div className="flex gap-2">
-                    <Button
+                    <Button 
                       variant="outline"
                       className="flex-1 border-2 border-gray-300 rounded-lg hover:bg-gray-100"
                       onClick={() => setIsRaidModalOpen(true)}
@@ -291,112 +484,136 @@ export function ClassManagePage() {
                     </Button>
                     <Button
                       className="flex-1 bg-black text-white hover:bg-gray-800 rounded-lg"
+                      onClick={handleTerminateRaid}
+                      disabled={isTerminating}
                     >
-                      레이드 종료
+                      {isTerminating ? '종료 중...' : '레이드 종료'}
                     </Button>
                   </div>
                 </div>
               ) : (
                 <div className="text-center py-8 text-gray-600">
-                  <p>진행 중인 레이드가 없습니다</p>
-                  <Button
-                    variant="outline"
-                    className="mt-4 border-2 border-gray-300 rounded-lg hover:bg-gray-100"
-                    onClick={() => navigate('/teacher/raid/create')}
-                  >
-                    레이드 시작하기
-                  </Button>
+                  <p>진행 중인 레이드가 없습니다.</p>
+                  <div className="mt-4 flex flex-col gap-3 sm:flex-row justify-center">
+                    <Button 
+                      variant="outline"
+                      className="border-2 border-gray-300 rounded-lg hover:bg-gray-100"
+                      onClick={() => navigate('/teacher/raid/create')}
+                    >
+                      새 레이드 시작
+                    </Button>
+                    <Button
+                      className="bg-black text-white hover:bg-gray-800 rounded-lg"
+                      onClick={() => navigate('/teacher/raid/manage', { state: { initialFilter: 'ENDED' } })}
+                    >
+                      마감된 레이드 보기
+                    </Button>
+                  </div>
                 </div>
               )}
             </CardContent>
           </Card>
         </div>
-      </div>
 
       {/* 레이드 상세 모달 */}
-      {activeRaid && (
-        <Dialog open={isRaidModalOpen} onOpenChange={setIsRaidModalOpen}>
-          <DialogContent className="max-w-2xl bg-white border-2 border-gray-300">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-black">
-                <Sword className="w-5 h-5 text-black" />
-                {activeRaid.title} 상세 정보
-              </DialogTitle>
-            </DialogHeader>
+      <Dialog open={isRaidModalOpen} onOpenChange={setIsRaidModalOpen}>
+        <DialogContent className="max-w-2xl bg-white border-2 border-gray-300">
+          {activeRaid ? (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 text-black">
+                  <Sword className="w-5 h-5 text-black" />
+                  {activeRaid.title} 상세 정보
+                </DialogTitle>
+              </DialogHeader>
+              
+              <div className="space-y-6">
+                {/* 레이드 상태 */}
+                <div className="flex items-center gap-2">
+                  {daysLeftLabel && (
+                    <Badge variant="outline" className="border-2 border-gray-300 rounded-lg bg-white text-black">
+                      {daysLeftLabel}
+                    </Badge>
+                  )}
+                  <span className="text-sm text-gray-600">현재 진행 중</span>
+                </div>
 
-            <div className="space-y-6">
-              {/* 레이드 상태 */}
-              <div className="flex items-center gap-2">
-                <Badge variant="outline" className="border-2 border-gray-300 rounded-lg bg-white text-black">
-                  {daysLeft}일 남음
-                </Badge>
-                <span className="text-sm text-gray-600">현재 진행 중</span>
-              </div>
-
-              {/* 보스 정보 */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-black">보스 정보</h3>
-                <div className="space-y-3">
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-black">보스 HP</span>
-                      <span className="text-black font-semibold">{activeRaid.boss_hp.percentage}%</span>
+                {/* 보스 정보 */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-black">보스 정보</h3>
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-black">보스 HP</span>
+                        <span className="text-black font-semibold">{raidHpLabel}</span>
+                      </div>
+                      <div className="border-2 border-gray-300 h-6 overflow-hidden rounded bg-gray-200">
+                        <div 
+                          className="h-full bg-black transition-all duration-300"
+                          style={{ width: `${raidHpPercentage}%` }}
+                        />
+                      </div>
                     </div>
-                    <div className="border-2 border-gray-300 h-6 overflow-hidden rounded bg-gray-200">
-                      <div
-                        className="h-full bg-black transition-all duration-300"
-                        style={{ width: `${activeRaid.boss_hp.percentage}%` }}
-                      />
+                  </div>
+                </div>
+
+                {/* 참여자 정보 */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-black">참여 현황</h3>
+                  <div className="flex items-center gap-2 p-4 bg-gray-100 rounded-lg border-2 border-gray-300">
+                    <Users className="w-5 h-5 text-black" />
+                    <span className="text-lg font-semibold text-black">
+                      {activeRaid.participants ?? 0}명 참여
+                    </span>
+                  </div>
+                </div>
+
+                {/* 레이드 통계 */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-black">레이드 통계</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-4 bg-gray-100 rounded-lg text-center border-2 border-gray-300">
+                      <div className="text-2xl font-bold text-black">{raidHpPercentage}%</div>
+                      <div className="text-sm text-gray-600">남은 HP%</div>
                     </div>
+                    {daysLeftLabel && (
+                      <div className="p-4 bg-gray-100 rounded-lg text-center border-2 border-gray-300">
+                        <div className="text-2xl font-bold text-black">{daysLeftLabel}</div>
+                        <div className="text-sm text-gray-600">남은 시간</div>
+                      </div>
+                    )}
                   </div>
                 </div>
-              </div>
 
-              {/* 참여자 정보 */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-black">참여 현황</h3>
-                <div className="flex items-center gap-2 p-4 bg-gray-100 rounded-lg border-2 border-gray-300">
-                  <Users className="w-5 h-5 text-black" />
-                  <span className="text-lg font-semibold text-black">
-                    {activeRaid.participants}명 참여
-                  </span>
+                {/* 액션 버튼들 */}
+                <div className="flex gap-2 pt-4 border-t-2 border-gray-300">
+                  <Button 
+                    variant="outline" 
+                    className="flex-1 border-2 border-gray-300 rounded-lg bg-white text-black hover:bg-gray-100"
+                    onClick={() => setIsRaidModalOpen(false)}
+                  >
+                    닫기
+                  </Button>
+                  <Button 
+                    className="flex-1 bg-black hover:bg-gray-800 text-white rounded-lg"
+                    onClick={() => {
+                      setIsRaidModalOpen(false);
+                      handleTerminateRaid();
+                    }}
+                    disabled={isTerminating}
+                  >
+                    {isTerminating ? '종료 중...' : '레이드 종료'}
+                  </Button>
                 </div>
               </div>
-
-              {/* 레이드 통계 */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-black">레이드 통계</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-4 bg-gray-100 rounded-lg text-center border-2 border-gray-300">
-                    <div className="text-2xl font-bold text-black">{activeRaid.boss_hp.percentage}%</div>
-                    <div className="text-sm text-gray-600">남은 HP</div>
-                  </div>
-                  <div className="p-4 bg-gray-100 rounded-lg text-center border-2 border-gray-300">
-                    <div className="text-2xl font-bold text-black">{daysLeft}일</div>
-                    <div className="text-sm text-gray-600">남은 시간</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* 액션 버튼들 */}
-              <div className="flex gap-2 pt-4 border-t-2 border-gray-300">
-                <Button
-                  variant="outline"
-                  className="flex-1 border-2 border-gray-300 rounded-lg bg-white text-black hover:bg-gray-100"
-                  onClick={() => setIsRaidModalOpen(false)}
-                >
-                  닫기
-                </Button>
-                <Button
-                  className="flex-1 bg-black hover:bg-gray-800 text-white rounded-lg"
-                >
-                  레이드 종료
-                </Button>
-              </div>
+            </>
+          ) : (
+            <div className="py-10 text-center text-sm text-gray-600">
+              진행 중인 레이드가 없습니다.
             </div>
-          </DialogContent>
-        </Dialog>
-      )}
-    </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

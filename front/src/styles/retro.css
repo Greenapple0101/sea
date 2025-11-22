@@ -25,12 +25,14 @@
 .retro-layout {
     * {
         font-family: 'RoundedFixedsys';
+        font-weight: bold;
     }
 
     body {
         color: #222;
         font-family: Arial;
-        font-size: 12px
+        font-size: 12px;
+        font-weight: bold;
     }
 
     .title-bar,
@@ -47,7 +49,8 @@
     ul.tree-view {
         -webkit-font-smoothing: none;
         font-family: 'RoundedFixedsys', "Pixelated MS Sans Serif", Arial;
-        font-size: 11px
+        font-size: 11px;
+        font-weight: bold;
     }
 
     h1 {
@@ -253,7 +256,8 @@
     }
 
     .window-body {
-        margin: 8px
+        margin: 8px;
+        background-color: silver
     }
 
     fieldset {
@@ -808,7 +812,11 @@
 
     .window[role=tabpanel] {
         position: relative;
-        z-index: 2
+        z-index: 2;
+        background-color: silver;
+        overflow: visible;
+        height: auto;
+        min-height: auto
     }
 
     menu[role=tablist] {
@@ -821,6 +829,7 @@
     }
 
     menu[role=tablist]>li {
+        background-color: silver;
         border-top-left-radius: 3px;
         border-top-right-radius: 3px;
         box-shadow: inset -1px 0 #0a0a0a, inset 1px 1px #dfdfdf, inset -2px 0 grey, inset 2px 2px #fff;

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Badge } from '../ui/badge';
 import { useAuth } from "../../contexts/AppContext";
 import { get } from "../../utils/api";
@@ -357,19 +357,20 @@ export function StudentCollection() {
   if (error) return <div className="p-4" style={{ color: "red" }}>오류: {error}</div>;
 
   return (
-    <div className="p-4 space-y-4 pb-20 max-w-screen-xl mx-auto" style={{ backgroundColor: "var(--bg-color)", minHeight: "100vh" }}>
-      <menu role="tablist" style={{ margin: "0 0 -2px 0" }}>
-        <li role="tab" aria-selected={currentView === 'aquarium'}>
-          <a href="#" onClick={(e) => { e.preventDefault(); setCurrentView('aquarium'); }}>수족관</a>
-        </li>
-        <li role="tab" aria-selected={currentView === 'book'}>
-          <a href="#" onClick={(e) => { e.preventDefault(); setCurrentView('book'); }}>도감</a>
-        </li>
-      </menu>
+    <div className="p-4 pb-20 max-w-screen-xl mx-auto" style={{ backgroundColor: "var(--bg-color)", minHeight: "100vh" }}>
+      <div style={{ marginBottom: "16px" }}>
+        <menu role="tablist" style={{ margin: "0 0 -2px 0" }}>
+          <li role="tab" aria-selected={currentView === 'aquarium'}>
+            <a href="#" onClick={(e) => { e.preventDefault(); setCurrentView('aquarium'); }}>수족관</a>
+          </li>
+          <li role="tab" aria-selected={currentView === 'book'}>
+            <a href="#" onClick={(e) => { e.preventDefault(); setCurrentView('book'); }}>도감</a>
+          </li>
+        </menu>
 
-      {/* 메인 윈도우 */}
-      <div className="window" role="tabpanel" style={{ width: "100%", margin: "0" }}>
-        <div className="window-body">
+        {/* 메인 윈도우 */}
+        <div className="window" role="tabpanel" style={{ width: "100%", margin: "0" }}>
+          <div className="window-body">
 
           {/* 수족관 뷰 */}
           {currentView === 'aquarium' && (
@@ -426,7 +427,7 @@ export function StudentCollection() {
                 수집 진행도: {stats.current} / {stats.total} ({((stats.current / stats.total) * 100).toFixed(1)}%)
               </div>
 
-              <div className="sunken-panel" style={{ height: "400px", overflowY: "scroll", padding: "10px", background: "#fff" }}>
+              <div className="sunken-panel" style={{ height: "400px", overflowY: "scroll", padding: "10px", background: "var(--color-white)" }}>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "10px" }}>
                   {fishList.map((fish) => {
                     const isTurtle = fish.fish_id === 11 && fish.fish_name === 'Turtle';
@@ -439,10 +440,10 @@ export function StudentCollection() {
                       style={{
                         cursor: isOwnedOrTurtle ? "pointer" : "default",
                         opacity: isOwnedOrTurtle ? 1 : 0.5,
-                        backgroundColor: isOwnedOrTurtle ? "#fff" : "#eee"
+                        backgroundColor: "transparent"
                       }}
                     >
-                      <div className="window-body" style={{ textAlign: "center", padding: "5px" }}>
+                      <div className="window-body" style={{ textAlign: "center", padding: "5px", backgroundColor: "white" }}>
                         <div style={{ height: "50px", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "5px", objectFit: "contain" }}>
                           {isOwnedOrTurtle && fish.fish_name !== '???' && FISH_ICONS[fish.fish_id] ? (
                             renderFishSprite(fish, 2)
@@ -465,6 +466,7 @@ export function StudentCollection() {
             </>
           )}
 
+          </div>
         </div>
       </div>
 
@@ -479,7 +481,7 @@ export function StudentCollection() {
               </div>
             </div>
             <div className="window-body text-center">
-              <div className="sunken-panel" style={{ width: "100px", height: "100px", margin: "0 auto 10px auto", display: "flex", alignItems: "center", justifyContent: "center", background: "#fff" }}>
+              <div className="sunken-panel" style={{ width: "100px", height: "100px", margin: "0 auto 10px auto", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--color-white)" }}>
                 {renderFishSprite(selectedFish, 2)}
               </div>
               <h4 style={{ margin: "5px 0" }}>{selectedFish.fish_name}</h4>

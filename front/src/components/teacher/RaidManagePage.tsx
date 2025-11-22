@@ -1,292 +1,298 @@
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
-import { Input } from "../ui/input";
-import { Textarea } from "../ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
-import { 
-  ArrowLeft, 
-  Sword,
-  Play,
-  Square,
-  Users,
-  Trophy,
-  X
-} from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import { Progress } from "../ui/progress";
-import { useState } from "react";
+import { get, post } from "../../utils/api";
+import { useLocation } from "react-router-dom";
+
+interface RaidSummary {
+  raid_id: number;
+  class_name: string;
+  raid_name: string;
+  status: 'ACTIVE' | 'COMPLETED' | 'EXPIRED' | 'TERMINATED';
+  current_boss_hp: number;
+  total_boss_hp: number;
+  participant_count: number;
+  end_date: string;
+  difficulty: string;
+}
+
+interface RaidDetail {
+  raid_id: number;
+  class_name: string;
+  raid_name: string;
+  template: string;
+  difficulty: string;
+  status: string;
+  total_boss_hp: number;
+  current_boss_hp: number;
+  reward_coral: number;
+  reward_research_data: number;
+  special_reward_description?: string;
+  participant_count: number;
+  contributions: {
+    student_id: number;
+    student_name: string;
+    damage: number;
+  }[];
+}
+
+type StatusFilter = 'ACTIVE' | 'ENDED';
+const ENDED_STATUSES: RaidSummary['status'][] = ['COMPLETED', 'EXPIRED', 'TERMINATED'];
 
 export function RaidManagePage() {
-  const navigate = useNavigate();
-  const [selectedRaid, setSelectedRaid] = useState<any>(null);
-  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const location = useLocation();
+  const locationState = location.state as { initialFilter?: StatusFilter; focusRaidId?: number } | null;
+  const [raids, setRaids] = useState<RaidSummary[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedRaidId, setSelectedRaidId] = useState<number | null>(null);
+  const [raidDetail, setRaidDetail] = useState<RaidDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const initialFilterRef = useRef<StatusFilter>(locationState?.initialFilter ?? 'ACTIVE');
+  const initialFocusRef = useRef<number | null>(locationState?.focusRaidId ?? null);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>(initialFilterRef.current);
+  const [pendingFocusRaidId, setPendingFocusRaidId] = useState<number | null>(initialFocusRef.current);
 
-  const raids = [
-    { 
-      id: 1, 
-      name: "전교생 독서 마라톤", 
-      bossHp: 42,
-      ultimateGauge: 65,
-      participants: 24, 
-      status: "진행중",
-      reward: "아이스크림 파티"
-    },
-    { 
-      id: 2, 
-      name: "과학 실험 프로젝트", 
-      bossHp: 60,
-      ultimateGauge: 40,
-      participants: 8, 
-      status: "진행중",
-      reward: "과학관 견학"
-    },
-    { 
-      id: 3, 
-      name: "수학 경시대회", 
-      bossHp: 100,
-      ultimateGauge: 0,
-      participants: 0, 
-      status: "대기중",
-      reward: "문화상품권"
-    },
-  ];
+  const fetchRaids = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await get('/api/v1/raids');
+      const json = await response.json();
+      if (response.ok) {
+        setRaids(json.data?.raids ?? []);
+      } else {
+        setError(json?.message ?? '레이드 목록을 불러오지 못했습니다.');
+      }
+    } catch (err) {
+      setError('레이드 목록을 불러오지 못했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRaids();
+  }, []);
+
+  useEffect(() => {
+    const fetchDetail = async () => {
+      if (!selectedRaidId) {
+        setRaidDetail(null);
+        return;
+      }
+      setDetailLoading(true);
+      try {
+        const response = await get(`/api/v1/raids/${selectedRaidId}/detail`);
+        const json = await response.json();
+        if (response.ok) {
+          setRaidDetail(json.data);
+        } else {
+          setRaidDetail(null);
+        }
+      } catch (err) {
+        setRaidDetail(null);
+      } finally {
+        setDetailLoading(false);
+      }
+    };
+    fetchDetail();
+  }, [selectedRaidId]);
+
+  const handleTerminate = async (raidId: number) => {
+    setActionMessage(null);
+    try {
+      const response = await post(`/api/v1/raids/${raidId}/terminate`);
+      const json = await response.json();
+      if (!response.ok) {
+        throw new Error(json?.message ?? '레이드 종료에 실패했습니다.');
+      }
+      setActionMessage('레이드를 종료했습니다.');
+      fetchRaids();
+    } catch (err: any) {
+      setActionMessage(err.message ?? '레이드 종료에 실패했습니다.');
+    }
+  };
+
+  const filteredRaids = useMemo(() => {
+    if (statusFilter === 'ACTIVE') {
+      return raids.filter((raid) => raid.status === 'ACTIVE');
+    }
+    return raids.filter((raid) => ENDED_STATUSES.includes(raid.status));
+  }, [raids, statusFilter]);
+
+  useEffect(() => {
+    if (pendingFocusRaidId) {
+      setSelectedRaidId(pendingFocusRaidId);
+      setPendingFocusRaidId(null);
+      return;
+    }
+    if (filteredRaids.length === 0) {
+      setSelectedRaidId(null);
+      return;
+    }
+    const exists = filteredRaids.some((raid) => raid.raid_id === selectedRaidId);
+    if (!exists) {
+      setSelectedRaidId(filteredRaids[0].raid_id);
+    }
+  }, [filteredRaids, pendingFocusRaidId, selectedRaidId]);
+
+  const selectedRaidSummary = useMemo(
+    () => raids.find((raid) => raid.raid_id === selectedRaidId),
+    [raids, selectedRaidId]
+  );
+
+  if (loading) {
+    return <div className="p-6">레이드 목록을 불러오는 중...</div>;
+  }
+
+  if (error) {
+    return <div className="p-6 text-red-600">{error}</div>;
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50 to-orange-50">
-      {/* Header */}
-      <div className="bg-white border-b p-4">
-        <div className="max-w-6xl mx-auto flex items-center gap-3">
-          <Button 
-            variant="ghost" 
-            size="icon"
-            onClick={() => navigate('teacher-dashboard')}
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <div className="flex items-center gap-2">
-            <Sword className="w-6 h-6 text-red-500" />
+    <div className="p-6 space-y-6">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between border-b-2 border-gray-300 pb-4">
+          <div>
             <h1>레이드 관리</h1>
+            <p className="text-sm text-gray-600 mt-1">레이드 상태를 확인하고 필요한 조치를 취하세요.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant={statusFilter === 'ACTIVE' ? 'default' : 'outline'}
+              className={statusFilter === 'ACTIVE' ? 'bg-black text-white hover:bg-gray-800' : 'border-2 border-gray-300'}
+              onClick={() => setStatusFilter('ACTIVE')}
+            >
+              진행 중 레이드
+            </Button>
+            <Button
+              variant={statusFilter === 'ENDED' ? 'default' : 'outline'}
+              className={statusFilter === 'ENDED' ? 'bg-black text-white hover:bg-gray-800' : 'border-2 border-gray-300'}
+              onClick={() => setStatusFilter('ENDED')}
+            >
+              마감된 레이드
+            </Button>
+            <Button className="bg-black text-white hover:bg-gray-800" onClick={fetchRaids}>
+              새로고침
+            </Button>
           </div>
         </div>
-      </div>
 
-      <div className="max-w-6xl mx-auto p-4 space-y-6">
-        {/* Active Raids */}
-        <Card>
-          <CardHeader>
-            <CardTitle>전체 레이드 목록</CardTitle>
-            <CardDescription>레이드를 시작하거나 종료할 수 있습니다</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {raids.map((raid) => (
-              <Card key={raid.id} className={`border-2 ${
-                raid.status === "진행중" ? "border-red-200 bg-red-50" : "border-gray-200"
-              }`}>
-                <CardContent className="p-4 space-y-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <h4>{raid.name}</h4>
-                        <Badge variant={raid.status === "진행중" ? "destructive" : "secondary"}>
-                          {raid.status}
-                        </Badge>
-                      </div>
-                      <div className="space-y-3">
-                        {/* Boss HP */}
-                        <div className="space-y-1">
-                          <div className="flex justify-between text-sm">
-                            <span>보스 HP</span>
-                            <span className="text-red-600">{raid.bossHp}%</span>
-                          </div>
-                          <Progress value={raid.bossHp} className="h-2" />
-                        </div>
-                        
-                        {/* Ultimate Gauge */}
-                        <div className="space-y-1">
-                          <div className="flex justify-between text-sm">
-                            <span>필살기 게이지</span>
-                            <span className="text-yellow-600">{raid.ultimateGauge}%</span>
-                          </div>
-                          <Progress value={raid.ultimateGauge} className="h-2" />
-                        </div>
+        {actionMessage && <p className="text-sm text-center">{actionMessage}</p>}
 
-                        <div className="flex items-center justify-between text-sm">
-                          <div className="flex items-center gap-1 text-muted-foreground">
-                            <Users className="w-4 h-4" />
-                            <span>{raid.participants}명 참여</span>
-                          </div>
-                          <div className="flex items-center gap-1 text-muted-foreground">
-                            <Trophy className="w-4 h-4" />
-                            <span>보상: {raid.reward}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Reward Text Input */}
-                  <div className="space-y-2">
-                    <label className="text-sm">보상 내용 (학생들에게 표시됨)</label>
-                    <Input 
-                      placeholder="예: 아이스크림 파티"
-                      defaultValue={raid.reward}
-                    />
-                  </div>
-
-                  {/* Control Buttons */}
-                  <div className="flex gap-2">
-                    {raid.status === "대기중" ? (
-                      <Button 
-                        className="flex-1 bg-green-500 hover:bg-green-600"
-                      >
-                        <Play className="w-4 h-4 mr-2" />
-                        레이드 시작
-                      </Button>
-                    ) : (
-                      <>
-                        <Button 
-                          variant="outline"
-                          className="flex-1"
-                          onClick={() => {
-                            alert(`${raid.name} 상세 정보\n보스 HP: ${raid.bossHp}%\n필살기 게이지: ${raid.ultimateGauge}%\n참여자: ${raid.participants}명\n보상: ${raid.reward}`);
-                          }}
-                        >
-                          상세 보기
-                        </Button>
-                        <Button 
-                          className="flex-1 bg-red-500 hover:bg-red-600"
-                        >
-                          <Square className="w-4 h-4 mr-2" />
-                          레이드 종료
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </CardContent>
-        </Card>
-
-        {/* Instructions */}
-        <Card className="bg-blue-50 border-blue-200">
-          <CardContent className="p-4 space-y-2">
-            <h4>레이드 관리 안내</h4>
-            <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-              <li><strong>레이드 시작:</strong> 학생들이 참여할 수 있도록 레이드를 활성화합니다</li>
-              <li><strong>보상 설정:</strong> 보상 내용을 입력하면 학생들에게 표시됩니다</li>
-              <li><strong>레이드 종료:</strong> 레이드를 종료하고 참여자들에게 보상을 지급합니다</li>
-              <li><strong>보스 HP:</strong> 학생들의 기여로 감소합니다</li>
-              <li><strong>필살기 게이지:</strong> 학생들의 경험치로 충전됩니다</li>
-            </ul>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* 레이드 상세 모달 */}
-      <Dialog open={isDetailModalOpen} onOpenChange={setIsDetailModalOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Sword className="w-5 h-5 text-red-500" />
-              {selectedRaid?.name} 상세 정보
-            </DialogTitle>
-          </DialogHeader>
-          
-          {selectedRaid && (
-            <div className="space-y-6">
-              {/* 레이드 상태 */}
-              <div className="flex items-center gap-2">
-                <Badge variant={selectedRaid.status === "진행중" ? "destructive" : "secondary"}>
-                  {selectedRaid.status}
-                </Badge>
-                <span className="text-sm text-gray-600">
-                  {selectedRaid.status === "진행중" ? "현재 진행 중" : "대기 중"}
-                </span>
-              </div>
-
-              {/* 보스 정보 */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">보스 정보</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>보스 HP</span>
-                      <span className="text-red-600 font-semibold">{selectedRaid.bossHp}%</span>
-                    </div>
-                    <Progress value={selectedRaid.bossHp} className="h-3" />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>필살기 게이지</span>
-                      <span className="text-yellow-600 font-semibold">{selectedRaid.ultimateGauge}%</span>
-                    </div>
-                    <Progress value={selectedRaid.ultimateGauge} className="h-3" />
-                  </div>
-                </div>
-              </div>
-
-              {/* 참여자 정보 */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">참여 현황</h3>
-                <div className="flex items-center gap-2 p-4 bg-blue-50 rounded-lg">
-                  <Users className="w-5 h-5 text-blue-600" />
-                  <span className="text-lg font-semibold text-blue-900">
-                    {selectedRaid.participants}명 참여
-                  </span>
-                </div>
-              </div>
-
-              {/* 보상 정보 */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">보상 정보</h3>
-                <div className="flex items-center gap-2 p-4 bg-green-50 rounded-lg">
-                  <Trophy className="w-5 h-5 text-green-600" />
-                  <span className="text-lg font-semibold text-green-900">
-                    {selectedRaid.reward}
-                  </span>
-                </div>
-              </div>
-
-              {/* 레이드 통계 */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">레이드 통계</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-4 bg-gray-50 rounded-lg text-center">
-                    <div className="text-2xl font-bold text-gray-900">{selectedRaid.bossHp}%</div>
-                    <div className="text-sm text-gray-600">남은 HP</div>
-                  </div>
-                  <div className="p-4 bg-gray-50 rounded-lg text-center">
-                    <div className="text-2xl font-bold text-gray-900">{selectedRaid.ultimateGauge}%</div>
-                    <div className="text-sm text-gray-600">필살기 게이지</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* 액션 버튼들 */}
-              <div className="flex gap-2 pt-4 border-t">
-                <Button 
-                  variant="outline" 
-                  className="flex-1"
-                  onClick={() => setIsDetailModalOpen(false)}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card className="border-2 border-gray-300 rounded-lg">
+            <CardHeader>
+              <CardTitle>레이드 목록</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {filteredRaids.length === 0 && (
+                <p className="text-sm text-gray-500">
+                  {statusFilter === 'ACTIVE' ? '진행 중인 레이드가 없습니다.' : '마감된 레이드가 없습니다.'}
+                </p>
+              )}
+              {filteredRaids.map((raid) => (
+                <Card
+                  key={raid.raid_id}
+                  className={`border-2 ${raid.raid_id === selectedRaidId ? 'border-black' : 'border-gray-200'} cursor-pointer`}
+                  onClick={() => setSelectedRaidId(raid.raid_id)}
                 >
-                  닫기
-                </Button>
-                {selectedRaid.status === "진행중" && (
-                  <Button 
-                    className="flex-1 bg-red-500 hover:bg-red-600"
-                  >
-                    <Square className="w-4 h-4 mr-2" />
-                    레이드 종료
-                  </Button>
-                )}
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+                  <CardContent className="p-4 space-y-2">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h4>{raid.raid_name}</h4>
+                        <p className="text-sm text-gray-500">{raid.class_name}</p>
+                      </div>
+                      <Badge variant={raid.status === 'ACTIVE' ? 'destructive' : 'secondary'}>
+                        {raid.status}
+                      </Badge>
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">보스 HP</span>
+                        <span>{raid.current_boss_hp.toLocaleString()} / {raid.total_boss_hp.toLocaleString()}</span>
+                      </div>
+                      <Progress value={(raid.current_boss_hp / raid.total_boss_hp) * 100} className="h-2" />
+                    </div>
+                    <div className="flex justify-between text-sm text-gray-600">
+                      <span>참여자</span>
+                      <span>{raid.participant_count}명</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </CardContent>
+          </Card>
+
+          <Card className="border-2 border-gray-300 rounded-lg">
+            <CardHeader>
+              <CardTitle>레이드 상세</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {detailLoading && <p>상세 정보를 불러오는 중...</p>}
+              {!detailLoading && raidDetail ? (
+                <>
+                  <div>
+                    <h3 className="text-lg font-semibold">{raidDetail.raid_name}</h3>
+                    <p className="text-sm text-gray-500">{raidDetail.class_name}</p>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">상태</span>
+                    <span>{raidDetail.status}</span>
+                  </div>
+                  <div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">보스 HP</span>
+                      <span>{raidDetail.current_boss_hp.toLocaleString()} / {raidDetail.total_boss_hp.toLocaleString()}</span>
+                    </div>
+                    <Progress value={(raidDetail.current_boss_hp / raidDetail.total_boss_hp) * 100} className="h-3" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="space-y-1">
+                      <p className="text-gray-600">코랄 보상</p>
+                      <p className="font-semibold">{raidDetail.reward_coral}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-gray-600">탐사데이터</p>
+                      <p className="font-semibold">{raidDetail.reward_research_data}</p>
+                    </div>
+                  </div>
+                  {raidDetail.special_reward_description && (
+                    <div>
+                      <p className="text-sm text-gray-600">특별 보상</p>
+                      <p className="text-sm">{raidDetail.special_reward_description}</p>
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-sm text-gray-600 mb-2">참여자 순위</p>
+                    <div className="space-y-2 max-h-40 overflow-y-auto border rounded p-2">
+                      {raidDetail.contributions.map((contribution) => (
+                        <div key={contribution.student_id} className="flex justify-between text-sm">
+                          <span>{contribution.student_name}</span>
+                          <span>{contribution.damage} dmg</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  {selectedRaidSummary?.status === 'ACTIVE' && (
+                    <Button
+                      className="w-full bg-red-600 hover:bg-red-700"
+                      onClick={() => handleTerminate(selectedRaidSummary.raid_id)}
+                    >
+                      레이드 종료
+                    </Button>
+                  )}
+                </>
+              ) : (
+                !detailLoading && <p className="text-sm text-gray-500">레이드를 선택하세요.</p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
     </div>
   );
 }
+

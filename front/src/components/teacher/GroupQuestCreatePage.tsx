@@ -61,9 +61,7 @@ export function GroupQuestCreatePage() {
   };
 
   return (
-    <div className="min-h-screen bg-white flex">
-
-      <div className="flex-1 border-l-2 border-gray-300">
+    <>
         {/* Header */}
         <div className="border-b-2 border-gray-300 p-6">
           <div className="flex items-center gap-4">
@@ -75,12 +73,12 @@ export function GroupQuestCreatePage() {
         </div>
 
         {/* Main Content */}
-        <div className="p-6 max-w-4xl">
+        <div className="p-6 max-w-4xl mx-auto">
           <div className="space-y-6">
             {/* 템플릿 선택 */}
             <Card className="border-2 border-gray-300">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-black">
+                <CardTitle className="flex items-center gap-2 text-black whitespace-nowrap">
                   <Target className="w-5 h-5" />
                   퀘스트 템플릿
                 </CardTitle>
@@ -107,7 +105,7 @@ export function GroupQuestCreatePage() {
             {/* 퀘스트 기본 정보 */}
             <Card className="border-2 border-gray-300">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-black">
+                <CardTitle className="flex items-center gap-2 text-black whitespace-nowrap">
                   <Users className="w-5 h-5" />
                   퀘스트 정보
                 </CardTitle>
@@ -197,7 +195,7 @@ export function GroupQuestCreatePage() {
             {/* 완료 조건 설정 */}
             <Card className="border-2 border-gray-300">
               <CardHeader>
-                <CardTitle className="text-black flex items-center gap-2">
+                <CardTitle className="text-black flex items-center gap-2 whitespace-nowrap">
                   <Target className="w-5 h-5" />
                   완료 조건 설정
                 </CardTitle>
@@ -271,7 +269,7 @@ export function GroupQuestCreatePage() {
               </Button>
               <Button
                 variant="outline"
-                onClick={() => navigate('quest-create-new')}
+                onClick={() => navigate('/teacher/quest')}
                 className="border-2 border-gray-300 rounded-lg hover:bg-gray-100"
               >
                 취소
@@ -279,7 +277,6 @@ export function GroupQuestCreatePage() {
             </div>
           </div>
         </div>
-      </div>
-    </div>
+    </>
   );
 }

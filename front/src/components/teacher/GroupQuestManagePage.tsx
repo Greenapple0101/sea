@@ -77,9 +77,7 @@ export function GroupQuestManagePage() {
   };
 
   return (
-    <div className="min-h-screen bg-white flex">
-      
-      <div className="flex-1 border-l-2 border-gray-300">
+    <>
         {/* Header */}
         <div className="border-b-2 border-gray-300 p-6">
           <div className="flex items-center justify-between">
@@ -224,7 +222,6 @@ export function GroupQuestManagePage() {
             </CardContent>
           </Card>
         </div>
-      </div>
-    </div>
+    </>
   );
 }

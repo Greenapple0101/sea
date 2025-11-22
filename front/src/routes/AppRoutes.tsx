@@ -1,9 +1,13 @@
 import React, { useEffect, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Sidebar } from '../components/teacher/Sidebar';
+import { useAuth } from '../contexts/AppContext';
 
 // Components
 import { RoleSelection } from '../components/RoleSelection';
+import { StudentCollection } from '../components/student/StudentCollection';
+import { StudentBottomNav } from '../components/student/StudentBottomNav';
+
 const LoginPage = lazy(() => import('../components/common/LoginPage').then(m => ({ default: m.LoginPage })));
 const SignupPage = lazy(() => import('../components/common/SignupPage').then(m => ({ default: m.SignupPage })));
 
@@ -11,9 +15,7 @@ const SignupPage = lazy(() => import('../components/common/SignupPage').then(m =
 const StudentDashboard = lazy(() => import('../components/student/StudentDashboard').then(m => ({ default: m.StudentDashboard })));
 const StudentQuests = lazy(() => import('../components/student/StudentQuests').then(m => ({ default: m.StudentQuests })));
 const StudentGacha = lazy(() => import('../components/student/StudentGacha').then(m => ({ default: m.StudentGacha })));
-const StudentCollection = lazy(() => import('../components/student/StudentCollection').then(m => ({ default: m.StudentCollection })));
 const StudentRaid = lazy(() => import('../components/student/StudentRaid').then(m => ({ default: m.StudentRaid })));
-import { StudentBottomNav } from '../components/student/StudentBottomNav';
 
 // Teacher components
 const TeacherDashboardNew = lazy(() => import('../components/teacher/TeacherDashboardNew').then(m => ({ default: m.TeacherDashboardNew })));
@@ -30,6 +32,7 @@ const StudentListPage = lazy(() => import('../components/teacher/StudentListPage
 const StudentDetailPage = lazy(() => import('../components/teacher/StudentDetailPage').then(m => ({ default: m.StudentDetailPage })));
 const TeacherProfilePage = lazy(() => import('../components/teacher/TeacherProfilePage').then(m => ({ default: m.TeacherProfilePage })));
 const ClassCreatePage = lazy(() => import('../components/teacher/ClassCreatePage').then(m => ({ default: m.ClassCreatePage })));
+const ClassActivityDashboard = lazy(() => import('../components/teacher/ClassActivityDashboard').then(m => ({ default: m.ClassActivityDashboard })));
 
 // Student Layout Component
 const StudentLayout: React.FC = () => {
@@ -56,10 +59,8 @@ const StudentLayout: React.FC = () => {
   }, [location.search, location.pathname, navigate]);
 
   return (
-    <div className="retro-layout h-screen flex flex-col bg-gray overflow-hidden">
-      <div className="flex-1 overflow-y-auto no-scrollbar" style={{backgroundImage: "var(--bg-url)"}}>
-        <Outlet />
-      </div>
+    <div className="min-h-screen bg-white" style={{ paddingBottom: '70px' }}>
+      <Outlet />
       <StudentBottomNav />
     </div>
   );
@@ -67,12 +68,51 @@ const StudentLayout: React.FC = () => {
 
 // Teacher Layout Component
 const TeacherLayout: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  // localStorage에서 직접 확인
+  const storedUser = localStorage.getItem('user');
+  const storedUserType = localStorage.getItem('userType');
+  
+  useEffect(() => {
+    // 로그인 페이지에서는 체크하지 않음
+    if (location.pathname.startsWith('/login')) {
+      return;
+    }
+    
+    // 인증되지 않았으면 로그인 페이지로 리다이렉트
+    if (!storedUser || storedUserType !== 'teacher') {
+      navigate('/login/teacher', { replace: true });
+    }
+  }, [storedUser, storedUserType, navigate, location.pathname]);
+  
+  // 로그인 페이지로 가는 중이면 아무것도 렌더링하지 않음
+  if (location.pathname.startsWith('/login')) {
+    return null;
+  }
+  
+  // 인증되지 않았으면 로딩 화면 표시
+  if (!storedUser || storedUserType !== 'teacher') {
+    return <div className="p-6">로딩중...</div>;
+  }
+
   return (
-    <div className="h-screen bg-white flex overflow-hidden">
-      <Sidebar />
-      <main className="flex-1 overflow-y-auto">
-        <Outlet />
-      </main>
+    <div className="window min-h-screen" style={{ margin: '20px', width: 'calc(100% - 40px)', height: 'calc(100vh - 40px)' }}>
+      <div className="title-bar">
+        <div className="title-bar-text">SCA 선생님 대시보드</div>
+        <div className="title-bar-controls">
+          <button aria-label="Minimize"></button>
+          <button aria-label="Maximize"></button>
+          <button aria-label="Close"></button>
+        </div>
+      </div>
+      <div className="window-body bg-white flex" style={{ padding: 0, height: 'calc(100% - 30px)' }}>
+        <Sidebar />
+        <main className="flex-1 border-l-2 border-gray-300 overflow-y-auto">
+          <Outlet />
+        </main>
+      </div>
     </div>
   );
 };
@@ -116,10 +156,11 @@ export const AppRoutes: React.FC = () => {
           <Route path="raid/manage" element={<RaidManagePage />} />
 
           {/* Teacher Class Routes */}
-          <Route path="class" element={<ClassManagePage />} />
+          <Route path="class/:classId?" element={<ClassManagePage />} />
           <Route path="class/create" element={<ClassCreatePage />} />
-          <Route path="students" element={<StudentListPage />} />
-          <Route path="students/:id" element={<StudentDetailPage />} />
+          <Route path="class/:classId/dashboard" element={<ClassActivityDashboard />} />
+          <Route path="students/:classId?" element={<StudentListPage />} />
+          <Route path="students/:classId/:id" element={<StudentDetailPage />} />
 
           {/* Teacher Profile */}
           <Route path="profile" element={<TeacherProfilePage />} />

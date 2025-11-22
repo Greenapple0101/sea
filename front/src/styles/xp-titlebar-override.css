@@ -1,0 +1,75 @@
+/* XP.css 타이틀 바 글자 크기 조정 */
+
+.title-bar {
+  font-size: 11px !important;
+  height: 22px !important;
+  line-height: 22px !important;
+}
+
+.title-bar-text {
+  font-size: 11px !important;
+  font-weight: normal !important;
+  padding: 0 8px !important;
+}
+
+.title-bar-controls {
+  height: 22px !important;
+}
+
+.title-bar-controls button {
+  width: 16px !important;
+  height: 16px !important;
+  margin: 2px !important;
+  font-size: 8px !important;
+}
+
+/* 페이지 제목 글자 크기 조정 */
+h1 {
+  font-size: 1rem !important;
+  font-weight: 600 !important;
+}
+
+h2 {
+  font-size: 0.9375rem !important;
+  font-weight: 600 !important;
+}
+
+h3 {
+  font-size: 0.875rem !important;
+  font-weight: 600 !important;
+}
+
+h4 {
+  font-size: 0.8125rem !important;
+  font-weight: 600 !important;
+}
+
+/* 본문 텍스트 크기 조정 */
+body {
+  font-size: 13px !important;
+}
+
+p {
+  font-size: 13px !important;
+}
+
+.text-sm {
+  font-size: 12px !important;
+}
+
+.text-base {
+  font-size: 13px !important;
+}
+
+.text-lg {
+  font-size: 14px !important;
+}
+
+.text-xl {
+  font-size: 16px !important;
+}
+
+.text-2xl {
+  font-size: 18px !important;
+}
+

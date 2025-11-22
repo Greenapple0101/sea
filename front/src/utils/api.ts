@@ -5,6 +5,50 @@
  * - refresh token 실패 시 자동 로그아웃
  */
 
+// 환경변수에서 API URL 가져오기
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+
+// 개발 환경에서 환경변수 로드 확인 (디버깅용)
+if (import.meta.env.DEV) {
+  console.log('🔧 개발 환경변수:', {
+    VITE_API_URL: import.meta.env.VITE_API_URL,
+    API_BASE_URL: API_BASE_URL,
+    MODE: import.meta.env.MODE
+  });
+}
+
+// URL을 완전한 경로로 변환하는 헬퍼 함수
+export function getFullUrl(url: string): string {
+  // 이미 전체 URL인 경우 그대로 반환
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+  
+  // 환경변수가 설정되어 있으면 환경변수 사용
+  if (API_BASE_URL) {
+    // URL이 이미 base URL로 시작하면 중복 추가하지 않음
+    if (url.startsWith(API_BASE_URL)) {
+      if (import.meta.env.DEV) {
+        console.log(`🌐 API 요청: ${url} (이미 base URL 포함)`);
+      }
+      return url;
+    }
+    
+    // 환경변수 사용: baseURL + 상대 경로
+    const fullUrl = `${API_BASE_URL}${url}`;
+    if (import.meta.env.DEV) {
+      console.log(`🌐 API 요청: ${url} → ${fullUrl}`);
+    }
+    return fullUrl;
+  } else {
+    // 환경변수가 없으면 상대 경로 그대로 사용 (Vite 프록시 또는 현재 도메인 기준)
+    if (import.meta.env.DEV) {
+      console.warn('⚠️ 환경변수 VITE_API_URL이 설정되지 않았습니다. 상대 경로 사용:', url);
+    }
+    return url;
+  }
+}
+
 let isRefreshing = false;
 let failedQueue: Array<{
   resolve: (value?: unknown) => void;
@@ -36,7 +80,8 @@ async function refreshAccessToken(): Promise<string> {
     throw new Error('No refresh token available');
   }
 
-  const response = await fetch('/api/v1/auth/refresh', {
+  const refreshUrl = getFullUrl('/api/v1/auth/refresh');
+  const response = await fetch(refreshUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -71,17 +116,13 @@ async function refreshAccessToken(): Promise<string> {
  * - refresh 실패 시 로그아웃 처리
  */
 export async function apiCall(url: string, options: ApiCallOptions = {}): Promise<Response> {
-  const { skipAuth = false, headers = {}, body, ...restOptions } = options;
+  const { skipAuth = false, headers = {}, ...restOptions } = options;
 
   // 기본 헤더 설정
   const defaultHeaders: HeadersInit = {
+    'Content-Type': 'application/json',
     ...headers,
   };
-
-  // body가 FormData가 아닐 때만 Content-Type을 application/json으로 설정
-  if (!(body instanceof FormData)) {
-    (defaultHeaders as Record<string, string>)['Content-Type'] = 'application/json';
-  }
 
   // skipAuth가 false이고 accessToken이 있으면 헤더에 추가
   if (!skipAuth) {
@@ -92,10 +133,10 @@ export async function apiCall(url: string, options: ApiCallOptions = {}): Promis
   }
 
   // 첫 번째 시도
-  let response = await fetch(url, {
+  const fullUrl = getFullUrl(url);
+  let response = await fetch(fullUrl, {
     ...restOptions,
     headers: defaultHeaders,
-    body,
   });
 
   // 401 에러가 아니면 바로 반환
@@ -114,10 +155,9 @@ export async function apiCall(url: string, options: ApiCallOptions = {}): Promis
 
       // 새 토큰으로 원래 요청 재시도
       (defaultHeaders as Record<string, string>).Authorization = `Bearer ${newAccessToken}`;
-      response = await fetch(url, {
+      response = await fetch(fullUrl, {
         ...restOptions,
         headers: defaultHeaders,
-        body,
       });
 
       return response;
@@ -144,10 +184,10 @@ export async function apiCall(url: string, options: ApiCallOptions = {}): Promis
       // 토큰 갱신이 완료되면 원래 요청 재시도
       const accessToken = localStorage.getItem('accessToken');
       (defaultHeaders as Record<string, string>).Authorization = `Bearer ${accessToken}`;
-      return fetch(url, {
+      const retryUrl = getFullUrl(url);
+      return fetch(retryUrl, {
         ...restOptions,
         headers: defaultHeaders,
-        body,
       });
     }) as Promise<Response>;
   }
