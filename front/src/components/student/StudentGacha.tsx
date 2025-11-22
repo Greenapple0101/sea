@@ -188,7 +188,7 @@ export function StudentGacha() {
   };
 
   return (
-    <div className="p-4 space-y-6 pb-20 max-w-screen-xl mx-auto" style={{ minHeight: "100vh" }}>
+    <div className="p-4 space-y-6 max-w-screen-xl mx-auto">
 
       {/* 가챠 머신 윈도우 */}
       <div className="window" style={{ width: "100%" }}>

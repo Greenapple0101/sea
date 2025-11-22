@@ -237,7 +237,7 @@ export function StudentQuests() {
   }
 
   return (
-    <div className="p-4 space-y-6 pb-20 max-w-screen-xl mx-auto" style={{ backgroundColor: "var(--bg-color)", minHeight: "100vh" }}>
+    <div className="p-4 space-y-6 max-w-screen-xl mx-auto">
 
       {/* 메인 퀘스트 목록 윈도우 */}
       <div className="window" style={{ width: "100%" }}>

@@ -357,7 +357,7 @@ export function StudentCollection() {
   if (error) return <div className="p-4" style={{ color: "red" }}>오류: {error}</div>;
 
   return (
-    <div className="p-4 pb-20 max-w-screen-xl mx-auto" style={{ backgroundColor: "var(--bg-color)", minHeight: "100vh" }}>
+    <div className="p-4 max-w-screen-xl mx-auto">
       <div style={{ marginBottom: "16px" }}>
         <menu role="tablist" style={{ margin: "0 0 -2px 0" }}>
           <li role="tab" aria-selected={currentView === 'aquarium'}>

@@ -103,7 +103,7 @@ export function LoginPage() {
   };
 
   return (
-    <div className="retro-layout min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: "var(--bg-color)" }}>
+    <div className="retro-layout min-h-screen flex items-center justify-center p-4" style={{ backgroundImage: "var(--bg-url)" }}>
       <div className="window" style={{ width: "100%", maxWidth: "400px" }}>
         <div className="title-bar">
           <div className="title-bar-text">&nbsp;{title}</div>

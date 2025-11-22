@@ -172,7 +172,7 @@ export function StudentRaid() {
 
   if (loading) {
     return (
-      <div className="p-6 flex flex-col justify-center items-center min-h-screen" style={{ backgroundColor: "var(--bg-color)" }}>
+      <div className="p-6 flex flex-col justify-center items-center min-h-screen">
         <div className="window" style={{ width: "300px" }}>
           <div className="title-bar">
             <div className="title-bar-text">로딩 중</div>
@@ -188,7 +188,7 @@ export function StudentRaid() {
 
   if (error || !raidInfo) {
     return (
-      <div className="p-6 flex flex-col justify-center items-center min-h-screen" style={{ backgroundColor: "var(--bg-color)" }}>
+      <div className="p-6 flex flex-col justify-center items-center min-h-screen">
         <div className="window" style={{ width: "300px" }}>
           <div className="title-bar">
             <div className="title-bar-text">알림</div>
@@ -205,7 +205,7 @@ export function StudentRaid() {
   }
 
   return (
-    <div className="p-4 space-y-6 pb-20 max-w-screen-xl mx-auto" style={{ backgroundColor: "var(--bg-color)", minHeight: "100vh" }}>
+    <div className="p-4 space-y-6 max-w-screen-xl mx-auto">
       {/* 1. 보스 & 레이드 정보 윈도우 */}
       <div className="window" style={{ width: "100%" }}>
         <div className="title-bar">

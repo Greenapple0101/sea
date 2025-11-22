@@ -133,7 +133,7 @@ export function QuestDetailPage({ quest, onBack }: QuestDetailPageProps) {
   const { completion_status, my_status } = questDetail;
 
   return (
-    <div className="p-4 space-y-6 bg-gray-50 min-h-screen pb-20 max-w-screen-xl mx-auto" style={{ backgroundColor: "var(--bg-color)" }}>
+    <div className="p-4 space-y-6 max-w-screen-xl mx-auto">
       {/* 상단 네비게이션 */}
       <div style={{ marginBottom: "10px" }}>
         <button onClick={onBack} style={{ minWidth: "80px" }}>

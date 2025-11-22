@@ -4,7 +4,7 @@ import { User, GraduationCap } from "lucide-react";
 export function RoleSelection() {
   const navigate = useNavigate();
   return (
-    <div className="retro-layout min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: "var(--bg-color)" }}>
+    <div className="retro-layout min-h-screen flex items-center justify-center p-4" style={{ backgroundImage: "var(--bg-url)" }}>
       <div className="window" style={{ width: "100%", maxWidth: "400px" }}>
         <div className="title-bar">
           <div className="title-bar-text">&nbsp;학습 관리 시스템</div>

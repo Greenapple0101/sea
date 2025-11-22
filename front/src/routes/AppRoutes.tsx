@@ -59,10 +59,8 @@ const StudentLayout: React.FC = () => {
   }, [location.search, location.pathname, navigate]);
 
   return (
-    <div className="retro-layout h-screen flex flex-col bg-gray overflow-hidden">
-      <div className="flex-1 overflow-y-auto no-scrollbar" style={{backgroundImage: "var(--bg-url)"}}>
-        <Outlet />
-      </div>
+    <div className="retro-layout min-h-screen" style={{backgroundImage: "var(--bg-url)", paddingBottom: "80px"}}>
+      <Outlet />
       <StudentBottomNav />
     </div>
   );
