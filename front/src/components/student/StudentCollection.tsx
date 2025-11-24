@@ -1,10 +1,12 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import type { CSSProperties } from 'react';
 import { Badge } from '../ui/badge';
 import { useAuth } from "../../contexts/AppContext";
 import { get } from "../../utils/api";
 import { FishIcon } from '../FishIcon';
 import { FishAnimation } from '../FishAnimation';
 import { FISH_ICONS } from '../../utils/sprite-helpers';
+const mosaicBg = new URL('../../styles/background.png', import.meta.url).href;
 
 type FishGrade = 'COMMON' | 'RARE' | 'LEGENDARY';
 
@@ -54,15 +56,11 @@ export function StudentCollection() {
   const { user, isAuthenticated, userType, access_token } = useAuth();
   const [currentView, setCurrentView] = useState<'aquarium' | 'book'>('aquarium');
   const [fishList, setFishList] = useState<UIFish[]>([]);
-  const [aquariumData, setAquariumData] = useState<UIFish[]>([]);
-  const [encyclopediaData, setEncyclopediaData] = useState<UIFish[]>([]);
   const [aquariumInstances, setAquariumInstances] = useState<{ id: string; fish: UIFish }[]>([]);
   const [selectedFish, setSelectedFish] = useState<UIFish | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
 
   const [stats, setStats] = useState({ current: 0, total: 0 });
-  const [aquariumStats, setAquariumStats] = useState({ current: 0, total: 0 });
-  const [encyclopediaStats, setEncyclopediaStats] = useState({ current: 0, total: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const fishTankRef = useRef<HTMLDivElement | null>(null);
@@ -74,105 +72,99 @@ export function StudentCollection() {
   const bubbleRiseMaxSpeed = 80;
   const bubbleMinSize = 4;
   const bubbleMaxSize = 8;
-
-  const normalizeAquarium = (items: AquariumFishItem[]): UIFish[] =>
-    items.map(item => ({
-      fish_id: item.fish_id,
-      fish_name: item.fish_name,
-      grade: item.grade as FishGrade,
-      current_count: item.fish_count,
-      is_owned: true,
-      size: getFishSize(item.grade as FishGrade)
-    }));
-
-  const normalizeEncyclopedia = (items: EncyclopediaFishItem[], collectedCount: number, totalFish: number) => {
-    const converted: UIFish[] = items.map(item => ({
-      fish_id: item.fish_id,
-      fish_name: item.fish_name,
-      grade: item.grade as FishGrade,
-      current_count: item.fish_count,
-      is_owned: item.is_collected,
-      size: getFishSize(item.grade as FishGrade)
-    }));
-
-    return {
-      list: converted,
-      stats: { current: collectedCount, total: totalFish }
-    };
+  const layoutBackgroundStyle: CSSProperties = {
+    backgroundColor: "#1d4d99",
+    backgroundImage: `url(${mosaicBg})`,
+    backgroundRepeat: "repeat",
+    padding: "32px 16px",
   };
+  const transparentWindowStyle: CSSProperties = {
+    background: "transparent",
+    boxShadow: "none",
+    padding: 0,
+    border: "1px solid rgba(255, 255, 255, 0.35)",
+  };
+  const transparentWindowBodyStyle: CSSProperties = {
+    background: "transparent",
+    margin: 0,
+    padding: "16px",
+  };
+  const aquariumPanelStyle: CSSProperties = {
+    width: "100%",
+    height: "400px",
+    backgroundImage: "var(--fg-aquarium), var(--bg-aquarium)",
+    backgroundRepeat: "repeat-x, repeat",
+    backgroundPosition: "bottom, center",
+    position: "relative",
+    overflow: "hidden",
+    border: "2px solid rgba(255, 255, 255, 0.4)",
+    backgroundColor: "transparent",
+  };
+  const bookPanelStyle: CSSProperties = {
+    height: "400px",
+    overflowY: "scroll",
+    padding: "10px",
+    background: "rgba(0, 0, 0, 0.25)",
+    border: "1px solid rgba(255, 255, 255, 0.25)",
+  };
+  const getCardStyle = (isOwned: boolean): CSSProperties => ({
+    cursor: isOwned ? "pointer" : "default",
+    opacity: isOwned ? 1 : 0.45,
+    backgroundColor: isOwned ? "rgba(192,192,192,0.8)" : "rgba(192,192,192,0.35)",
+    border: "1px solid rgba(255,255,255,0.25)",
+  });
 
-  useEffect(() => {
-    if (!isAuthenticated || userType !== 'student' || !access_token) return;
+  // API 호출 함수
+  const fetchData = async () => {
+    if (!access_token) return;
 
-    let isMounted = true;
     setIsLoading(true);
     setError(null);
 
-    const fetchAll = async () => {
-      try {
-        const [aquariumResult, encyclopediaResult] = await Promise.allSettled([
-          get('/api/v1/collection/aquarium'),
-          get('/api/v1/collection/encyclopedia')
-        ]);
+    try {
+      if (currentView === 'aquarium') {
+        const response = await get('/api/v1/collection/aquarium');
+        if (!response.ok) throw new Error('수족관 정보를 불러오는데 실패했습니다.');
+        const resJson = await response.json();
+        const data = resJson.data;
 
-        let successCount = 0;
-        let lastError: string | null = null;
+        const converted: UIFish[] = (data.collected_fish as AquariumFishItem[]).map(item => ({
+          fish_id: item.fish_id,
+          fish_name: item.fish_name,
+          grade: item.grade as FishGrade,
+          current_count: item.fish_count,
+          is_owned: true,
+          size: getFishSize(item.grade as FishGrade)
+        }));
 
-        if (aquariumResult.status === 'fulfilled' && aquariumResult.value?.ok) {
-          try {
-            const json = await aquariumResult.value.json();
-            const converted = normalizeAquarium(json?.data?.collected_fish || []);
-            if (isMounted) {
-              setAquariumData(converted);
-              setAquariumStats({ current: converted.length, total: 0 });
-            }
-            successCount += 1;
-          } catch {
-            lastError = '수족관 데이터를 해석하는 중 문제가 발생했습니다.';
-          }
-        } else {
-          lastError = '수족관 정보를 불러오지 못했습니다.';
-        }
+        setFishList(converted);
+        setStats({ current: converted.length, total: 0 }); // 수족관은 종류 수만 표시하거나 총 마리수 표시
 
-        if (encyclopediaResult.status === 'fulfilled' && encyclopediaResult.value?.ok) {
-          try {
-            const json = await encyclopediaResult.value.json();
-            const normalized = normalizeEncyclopedia(
-              json?.data?.fish_list || [],
-              json?.data?.collected_count || 0,
-              json?.data?.total_fish || 0
-            );
-            if (isMounted) {
-              setEncyclopediaData(normalized.list);
-              setEncyclopediaStats(normalized.stats);
-            }
-            successCount += 1;
-          } catch {
-            lastError = '도감 데이터를 해석하는 중 문제가 발생했습니다.';
-          }
-        } else {
-          lastError = '도감 정보를 불러오지 못했습니다.';
-        }
+      } else {
+        // 도감 조회
+        const response = await get('/api/v1/collection/encyclopedia');
+        if (!response.ok) throw new Error('도감 정보를 불러오는데 실패했습니다.');
+        const resJson = await response.json();
+        const data = resJson.data;
 
-        if (successCount === 0) {
-          throw new Error(lastError || '수집 정보를 불러오는 데 실패했습니다.');
-        }
-      } catch (err) {
-        if (isMounted) {
-          setError(err instanceof Error ? err.message : '알 수 없는 오류 발생');
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
+        const converted: UIFish[] = (data.fish_list as EncyclopediaFishItem[]).map(item => ({
+          fish_id: item.fish_id,
+          fish_name: item.fish_name,
+          grade: item.grade as FishGrade,
+          current_count: item.fish_count,
+          is_owned: item.is_collected,
+          size: getFishSize(item.grade as FishGrade)
+        }));
+
+        setFishList(converted);
+        setStats({ current: data.collected_count, total: data.total_fish });
       }
-    };
-
-    fetchAll();
-    return () => {
-      isMounted = false;
-    };
-  }, [isAuthenticated, userType, access_token]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '알 수 없는 오류 발생');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const renderFishSprite = (fish: UIFish, scaleOverride?: number) => {
     const finalScale = scaleOverride ?? fish.size;
@@ -209,14 +201,10 @@ export function StudentCollection() {
   };
 
   useEffect(() => {
-    if (currentView === 'aquarium') {
-      setFishList(aquariumData);
-      setStats(aquariumStats);
-    } else {
-      setFishList(encyclopediaData);
-      setStats(encyclopediaStats);
+    if (isAuthenticated && userType === 'student') {
+      fetchData();
     }
-  }, [currentView, aquariumData, aquariumStats, encyclopediaData, encyclopediaStats]);
+  }, [isAuthenticated, userType, access_token, currentView]);
 
   const handleFishClick = (fish: UIFish) => {
     setSelectedFish(fish);
@@ -375,8 +363,9 @@ export function StudentCollection() {
   if (error) return <div className="p-4" style={{ color: "red" }}>오류: {error}</div>;
 
   return (
-    <div className="p-4 space-y-4 pb-20 max-w-screen-xl mx-auto" style={{ backgroundColor: "var(--bg-color)", minHeight: "100vh" }}>
-      <menu role="tablist" style={{ margin: "0 0 -2px 0" }}>
+    <div className="retro-layout min-h-screen" style={layoutBackgroundStyle}>
+      <div className="space-y-3 pb-20 w-full max-w-4xl mx-auto">
+        <menu role="tablist" style={{ margin: "0 0 -2px 0", background: "transparent" }}>
         <li role="tab" aria-selected={currentView === 'aquarium'}>
           <a href="#" onClick={(e) => { e.preventDefault(); setCurrentView('aquarium'); }}>수족관</a>
         </li>
@@ -385,9 +374,9 @@ export function StudentCollection() {
         </li>
       </menu>
 
-      {/* 메인 윈도우 */}
-      <div className="window" role="tabpanel" style={{ width: "100%", margin: "0" }}>
-        <div className="window-body">
+        {/* 메인 윈도우 */}
+        <div className="window" role="tabpanel" style={{ width: "100%", margin: "0", ...transparentWindowStyle }}>
+          <div className="window-body" style={transparentWindowBodyStyle}>
 
           {/* 수족관 뷰 */}
           {currentView === 'aquarium' && (
@@ -396,11 +385,7 @@ export function StudentCollection() {
                 내 수족관: 총 {fishList.reduce((acc, cur) => acc + cur.current_count, 0)}마리 헤엄치는 중
               </div>
 
-              <div
-                className="sunken-panel"
-                style={{ width: "100%", height: "400px", backgroundImage: "var(--fg-aquarium), var(--bg-aquarium)", backgroundRepeat: "repeat-x, repeat", backgroundPosition: "bottom, center", position: "relative", overflow: "hidden" }}
-                ref={fishTankRef}
-              >
+              <div className="sunken-panel" style={aquariumPanelStyle} ref={fishTankRef}>
                 <div
                   ref={bubbleContainerRef}
                   style={{ position: 'absolute', inset: 0, zIndex: 0 }}
@@ -444,18 +429,14 @@ export function StudentCollection() {
                 수집 진행도: {stats.current} / {stats.total} ({((stats.current / stats.total) * 100).toFixed(1)}%)
               </div>
 
-              <div className="sunken-panel" style={{ height: "400px", overflowY: "scroll", padding: "10px", background: "#fff" }}>
+              <div className="sunken-panel" style={bookPanelStyle}>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))", gap: "10px" }}>
                   {fishList.map((fish) => (
                     <div
                       key={fish.fish_id}
                       className="window"
                       onClick={() => fish.is_owned && handleFishClick(fish)}
-                      style={{
-                        cursor: fish.is_owned ? "pointer" : "default",
-                        opacity: fish.is_owned ? 1 : 0.5,
-                        backgroundColor: fish.is_owned ? "#fff" : "#eee"
-                      }}
+                      style={getCardStyle(fish.is_owned)}
                     >
                       <div className="window-body" style={{ textAlign: "center", padding: "5px" }}>
                         <div style={{ height: "50px", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "5px", objectFit: "contain" }}>
@@ -482,33 +463,34 @@ export function StudentCollection() {
         </div>
       </div>
 
-      {/* [모달] 물고기 상세 정보 */}
-      {isDetailOpen && selectedFish && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="window" style={{ width: '90%', maxWidth: '300px' }}>
-            <div className="title-bar">
-              <div className="title-bar-text">상세 정보</div>
-              <div className="title-bar-controls">
-                <button aria-label="Close" onClick={() => setIsDetailOpen(false)} />
+        {/* [모달] 물고기 상세 정보 */}
+        {isDetailOpen && selectedFish && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+            <div className="window" style={{ width: '90%', maxWidth: '300px', ...transparentWindowStyle }}>
+              <div className="title-bar">
+                <div className="title-bar-text">상세 정보</div>
+                <div className="title-bar-controls">
+                  <button aria-label="Close" onClick={() => setIsDetailOpen(false)} />
+                </div>
               </div>
-            </div>
-            <div className="window-body text-center">
-              <div className="sunken-panel" style={{ width: "100px", height: "100px", margin: "0 auto 10px auto", display: "flex", alignItems: "center", justifyContent: "center", background: "#fff" }}>
-                {renderFishSprite(selectedFish, 2)}
-              </div>
-              <h4 style={{ margin: "5px 0" }}>{selectedFish.fish_name}</h4>
-              <div style={{ marginBottom: "10px" }}>{getRarityBadge(selectedFish.grade)}</div>
-              <fieldset>
-                <legend>정보</legend>
-                <p style={{ fontSize: "12px", margin: "4px 0" }}>보유 수량: {selectedFish.current_count}마리</p>
-              </fieldset>
-              <div style={{ marginTop: "15px" }}>
-                <button onClick={() => setIsDetailOpen(false)}>닫기</button>
+              <div className="window-body text-center" style={transparentWindowBodyStyle}>
+                <div className="sunken-panel" style={{ width: "100px", height: "100px", margin: "0 auto 10px auto", display: "flex", alignItems: "center", justifyContent: "center", background: "transparent" }}>
+                  {renderFishSprite(selectedFish, 2)}
+                </div>
+                <h4 style={{ margin: "5px 0" }}>{selectedFish.fish_name}</h4>
+                <div style={{ marginBottom: "10px" }}>{getRarityBadge(selectedFish.grade)}</div>
+                <fieldset>
+                  <legend>정보</legend>
+                  <p style={{ fontSize: "12px", margin: "4px 0" }}>보유 수량: {selectedFish.current_count}마리</p>
+                </fieldset>
+                <div style={{ marginTop: "15px" }}>
+                  <button onClick={() => setIsDetailOpen(false)}>닫기</button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

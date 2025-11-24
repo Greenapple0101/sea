@@ -62,44 +62,24 @@ export function StudentQuests() {
     setError(null);
 
     try {
-      const [activeResult, approvedResult, expiredResult] = await Promise.allSettled([
+      const [activeRes, approvedRes, expiredRes] = await Promise.all([
         get('/api/v1/quests/personal/my?status=ACTIVE'),
         get('/api/v1/quests/personal/my?status=APPROVED'),
         get('/api/v1/quests/personal/my?status=EXPIRED')
       ]);
 
-      let successCount = 0;
-      let lastError: string | null = null;
-
-      const processResult = async (
-        result: PromiseSettledResult<Response>,
-        setter: React.Dispatch<React.SetStateAction<MyPersonalQuest[]>>,
-        label: string
-      ) => {
-        if (result.status === 'fulfilled' && result.value?.ok) {
-          try {
-            const json = await result.value.json();
-            setter(json?.data?.quests || []);
-            successCount += 1;
-          } catch (err) {
-            lastError = `${label} 응답 파싱 중 오류가 발생했습니다.`;
-          }
-        } else {
-          lastError = `${label} 정보를 불러오지 못했습니다.`;
-        }
-      };
-
-      await processResult(activeResult, setActiveQuests, '진행 중 퀘스트');
-      await processResult(approvedResult, setApprovedQuests, '완료된 퀘스트');
-      await processResult(expiredResult, setExpiredQuests, '만료된 퀘스트');
-
-      if (successCount === 0) {
-        throw new Error(lastError || '퀘스트 목록을 불러오는 데 실패했습니다.');
+      if (!activeRes.ok || !approvedRes.ok || !expiredRes.ok) {
+        throw new Error('퀘스트 목록을 불러오는 데 실패했습니다.');
       }
 
-      if (lastError && successCount > 0) {
-        console.warn(lastError);
-      }
+      const activeData = await activeRes.json();
+      const approvedData = await approvedRes.json();
+      const expiredData = await expiredRes.json();
+
+      setActiveQuests(activeData.data.quests || []);
+      setApprovedQuests(approvedData.data.quests || []);
+      setExpiredQuests(expiredData.data.quests || []);
+
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -257,7 +237,10 @@ export function StudentQuests() {
   }
 
   return (
-    <div className="p-4 space-y-6 pb-20 max-w-screen-xl mx-auto" style={{ minHeight: "100vh" }}>
+    <div
+      className="p-4 space-y-4 pb-20 w-full"
+      style={{ backgroundColor: "transparent", minHeight: "100vh" }}
+    >
 
       {/* 메인 퀘스트 목록 윈도우 */}
       <div className="window" style={{ width: "100%" }}>

@@ -172,13 +172,16 @@ export function StudentRaid() {
 
   if (loading) {
     return (
-      <div className="p-6 flex flex-col justify-center items-center min-h-screen">
-        <div className="window" style={{ width: "300px" }}>
+      <div className="p-4 space-y-4 pb-20 w-full" style={{ backgroundColor: "transparent", minHeight: "100vh" }}>
+        <div className="window" style={{ width: "100%" }}>
           <div className="title-bar">
             <div className="title-bar-text">로딩 중</div>
           </div>
-          <div className="window-body text-center p-4">
-            <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
+          <div
+            className="window-body text-center p-8"
+            style={{ minHeight: "280px", display: "flex", flexDirection: "column", justifyContent: "center" }}
+          >
+            <Loader2 className="w-6 h-6 animate-spin mx-auto mb-4" />
             <span>레이드 정보를 수신 중...</span>
           </div>
         </div>
@@ -188,16 +191,19 @@ export function StudentRaid() {
 
   if (error || !raidInfo) {
     return (
-      <div className="p-6 flex flex-col justify-center items-center min-h-screen">
-        <div className="window" style={{ width: "300px" }}>
+      <div className="p-4 space-y-4 pb-20 w-full" style={{ backgroundColor: "transparent", minHeight: "100vh" }}>
+        <div className="window" style={{ width: "100%" }}>
           <div className="title-bar">
             <div className="title-bar-text">알림</div>
             <div className="title-bar-controls">
               <button aria-label="Close" />
             </div>
           </div>
-          <div className="window-body text-center p-4">
-            <p>{error || "진행 중인 레이드가 없습니다."}</p>
+          <div
+            className="window-body text-center p-8"
+            style={{ minHeight: "280px", display: "flex", alignItems: "center", justifyContent: "center" }}
+          >
+            <p style={{ fontSize: "14px" }}>{error || "진행 중인 레이드가 없습니다."}</p>
           </div>
         </div>
       </div>
@@ -205,7 +211,7 @@ export function StudentRaid() {
   }
 
   return (
-    <div className="p-4 space-y-6 pb-20 max-w-screen-xl mx-auto" style={{ minHeight: "100vh" }}>
+    <div className="p-4 space-y-4 pb-20 w-full" style={{ backgroundColor: "transparent", minHeight: "100vh" }}>
       {/* 1. 보스 & 레이드 정보 윈도우 */}
       <div className="window" style={{ width: "100%" }}>
         <div className="title-bar">

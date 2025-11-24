@@ -256,7 +256,10 @@ export function StudentDashboard() {
   ];
 
   return (
-    <div className="p-4 space-y-6 min-h-screen pb-20 max-w-screen-xl mx-auto">
+    <div
+      className="p-4 space-y-4 min-h-screen pb-20 w-full"
+      style={{ backgroundColor: "transparent" }}
+    >
       {/* 1. 이벤트 & 공지 윈도우 */}
       <div className="window" style={{ width: "100%" }}>
         <div className="title-bar">

@@ -138,6 +138,14 @@ export function StudentGacha() {
   }
 
   const drawGacha = async () => {
+    if (studentCoral === undefined || studentCoral === null) {
+      console.error('[Gacha] studentCoral is missing. Current value:', studentCoral);
+      alert('코랄 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
+      return;
+    }
+
+    console.log('[Gacha] draw requested. Current coral:', studentCoral);
+
     if (studentCoral < gachaCost) {
       alert('코랄이 부족합니다!');
       return;
