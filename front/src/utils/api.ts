@@ -5,8 +5,28 @@
  * - refresh token 실패 시 자동 로그아웃
  */
 
-// 환경변수에서 API URL 가져오기
-const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+// 환경변수에서 API URL 가져오기 (앞뒤 공백 및 중복 슬래시 제거)
+const RAW_API_BASE_URL = (import.meta.env.VITE_API_URL || '').trim();
+const API_BASE_URL = RAW_API_BASE_URL.replace(/\/+$/, '');
+const ABSOLUTE_URL_REGEX = /^https?:\/\//i;
+const isAbsoluteBaseUrl = ABSOLUTE_URL_REGEX.test(API_BASE_URL);
+
+let absoluteBaseOrigin = '';
+let absoluteBasePath = '';
+
+if (isAbsoluteBaseUrl) {
+  try {
+    const parsedBase = new URL(API_BASE_URL);
+    absoluteBaseOrigin = parsedBase.origin;
+    absoluteBasePath = parsedBase.pathname.replace(/\/$/, '');
+  } catch (error) {
+    console.error('⚠️ 잘못된 VITE_API_URL 값입니다:', error);
+  }
+}
+
+const relativeBasePath = !isAbsoluteBaseUrl && API_BASE_URL
+  ? (API_BASE_URL.startsWith('/') ? API_BASE_URL : `/${API_BASE_URL}`)
+  : '';
 
 // 개발 환경에서 환경변수 로드 확인 (디버깅용)
 if (import.meta.env.DEV) {
@@ -23,30 +43,55 @@ export function getFullUrl(url: string): string {
   if (url.startsWith('http://') || url.startsWith('https://')) {
     return url;
   }
+
+  const normalizedPath = url.startsWith('/') ? url : `/${url}`;
   
   // 환경변수가 설정되어 있으면 환경변수 사용
   if (API_BASE_URL) {
-    // URL이 이미 base URL로 시작하면 중복 추가하지 않음
-    if (url.startsWith(API_BASE_URL)) {
-      if (import.meta.env.DEV) {
-        console.log(`🌐 API 요청: ${url} (이미 base URL 포함)`);
+    // 절대 경로 base URL (예: http://localhost:8080/api/v1)
+    if (isAbsoluteBaseUrl && absoluteBaseOrigin) {
+      if (absoluteBasePath && normalizedPath.startsWith(`${absoluteBasePath}/`)) {
+        const fullUrl = `${absoluteBaseOrigin}${normalizedPath}`;
+        if (import.meta.env.DEV) {
+          console.log(`🌐 API 요청: ${normalizedPath} → ${fullUrl}`);
+        }
+        return fullUrl;
       }
-      return url;
+
+      const fullUrl = `${absoluteBaseOrigin}${absoluteBasePath}${normalizedPath}`;
+      if (import.meta.env.DEV) {
+        console.log(`🌐 API 요청: ${normalizedPath} → ${fullUrl}`);
+      }
+      return fullUrl;
     }
-    
-    // 환경변수 사용: baseURL + 상대 경로
-    const fullUrl = `${API_BASE_URL}${url}`;
-    if (import.meta.env.DEV) {
-      console.log(`🌐 API 요청: ${url} → ${fullUrl}`);
+
+    // 상대 경로 base URL (예: /api)
+    if (relativeBasePath) {
+      if (normalizedPath.startsWith(`${relativeBasePath}/`) || normalizedPath === relativeBasePath) {
+        if (import.meta.env.DEV) {
+          console.log(`🌐 API 요청: ${normalizedPath} (이미 base URL 포함)`);
+        }
+        return normalizedPath;
+      }
+
+      const baseWithoutTrailingSlash = relativeBasePath.endsWith('/')
+        ? relativeBasePath.slice(0, -1)
+        : relativeBasePath;
+      const fullUrl = `${baseWithoutTrailingSlash}${normalizedPath}`;
+      if (import.meta.env.DEV) {
+        console.log(`🌐 API 요청: ${normalizedPath} → ${fullUrl}`);
+      }
+      return fullUrl;
     }
-    return fullUrl;
   } else {
     // 환경변수가 없으면 상대 경로 그대로 사용 (Vite 프록시 또는 현재 도메인 기준)
     if (import.meta.env.DEV) {
       console.warn('⚠️ 환경변수 VITE_API_URL이 설정되지 않았습니다. 상대 경로 사용:', url);
     }
-    return url;
+    return normalizedPath;
   }
+
+  return normalizedPath;
 }
 
 let isRefreshing = false;

@@ -59,8 +59,17 @@ const StudentLayout: React.FC = () => {
   }, [location.search, location.pathname, navigate]);
 
   return (
-    <div className="min-h-screen bg-white" style={{ paddingBottom: '70px' }}>
-      <Outlet />
+    <div
+      className="retro-layout min-h-screen"
+      style={{
+        backgroundImage: 'var(--bg-url)',
+        backgroundRepeat: 'repeat',
+        paddingBottom: '70px',
+      }}
+    >
+      <div className="px-3 py-4 max-w-screen-xl mx-auto space-y-4">
+        <Outlet />
+      </div>
       <StudentBottomNav />
     </div>
   );

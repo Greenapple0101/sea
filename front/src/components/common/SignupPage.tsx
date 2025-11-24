@@ -1,12 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
-import { Input } from "../ui/input";
-import { Label } from "../ui/label";
-import { Button } from "../ui/button";
 import { ArrowLeft } from "lucide-react";
-import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
-import { Checkbox } from "../ui/checkbox";
 import { post } from "../../utils/api";
 
 type FormErrors = {
@@ -61,7 +55,8 @@ export function SignupPage() {
 
 
     //백엔드 api 호출용
-           const handleSignup = async () => {
+    const handleSignup = async (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
             if (formData.password !== formData.confirmPassword) {
                 setFormErrors(prev => ({ ...prev, confirmPassword: "비밀번호가 일치하지 않습니다." }));
                 return;
@@ -138,142 +133,178 @@ export function SignupPage() {
         }; 
 
     return (
-        <div className="min-h-screen bg-white flex items-center justify-center p-4">
-            <Card className="w-full max-w-md border-2 border-gray-300">
-                <CardHeader className="border-b-2 border-gray-300 relative">
-                    {/* 역할 선택 페이지('/')로 돌아가는 버튼 */}
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="absolute left-4 top-1/2 -translate-y-1/2 border border-gray-300 hover:bg-gray-100"
-                        onClick={() => navigate('/')}
-                    >
-                        <ArrowLeft className="w-5 h-5" />
-                    </Button>
-                    <CardTitle className="text-center text-black">회원가입</CardTitle>
-                </CardHeader>
-                <CardContent className="p-6 space-y-6">
-
-                    {/* 역할 선택 라디오 버튼 */}
-                    <div className="space-y-2">
-                        <Label>가입 유형 *</Label>
-                        <RadioGroup
-                            defaultValue="teacher"
-                            className="flex gap-4"
-                            onValueChange={(value: 'teacher' | 'student') => setRole(value)}
+        <div className="retro-layout min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: "var(--bg-color)" }}>
+            <div className="window" style={{ width: "100%", maxWidth: "460px" }}>
+                <div className="title-bar">
+                    <div className="title-bar-text">&nbsp;회원가입</div>
+                    <div className="title-bar-controls">
+                        <button aria-label="Minimize" />
+                        <button aria-label="Maximize" />
+                        <button aria-label="Close" />
+                    </div>
+                </div>
+                <div className="window-body">
+                    <div style={{ marginBottom: "15px" }}>
+                        <button
+                            onClick={() => navigate('/')}
+                            style={{ display: "flex", alignItems: "center", padding: "4px 8px", minWidth: "auto" }}
+                            type="button"
                         >
-                            <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="teacher" id="r-teacher" />
-                                <Label htmlFor="r-teacher">교사</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="student" id="r-student" />
-                                <Label htmlFor="r-student">학생</Label>
-                            </div>
-                        </RadioGroup>
+                            <ArrowLeft size={16} style={{ marginRight: "4px", color: "black" }} />
+                            돌아가기
+                        </button>
                     </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="username">아이디 *</Label>
-                        <Input id="username" placeholder="아이디를 입력하세요" className="border-2 border-gray-300 rounded-lg" value={formData.username} onChange={handleChange} />
-                        {formErrors.username && (
-                            <p className="text-sm text-red-600 pt-1">{formErrors.username}</p>
-                        )}
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="password">비밀번호 *</Label>
-                        <Input id="password" type="password" placeholder="비밀번호를 입력하세요" className="border-2 border-gray-300 rounded-lg" value={formData.password} onChange={handleChange} />
-                        {formErrors.password && (
-                            <p className="text-sm text-red-600 pt-1">{formErrors.password}</p>
-                        )}
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="confirmPassword">비밀번호 확인 *</Label>
-                        <Input id="confirmPassword" type="password" placeholder="비밀번호를 다시 입력하세요" className="border-2 border-gray-300 rounded-lg" value={formData.confirmPassword} onChange={handleChange} />
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="real_name">이름 (실명) *</Label>
-                        <Input id="real_name" placeholder="이름을 입력하세요" className="border-2 border-gray-300 rounded-lg" value={formData.real_name} onChange={handleChange} />
-                        {formErrors.real_name && (
-                            <p className="text-sm text-red-600 pt-1">{formErrors.real_name}</p>
-                        )}
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="nickname">닉네임 *</Label>
-                        <Input id="nickname" placeholder="닉네임을 입력하세요" className="border-2 border-gray-300 rounded-lg" value={formData.nickname} onChange={handleChange} />
-                        {formErrors.nickname && (
-                            <p className="text-sm text-red-600 pt-1">{formErrors.nickname}</p>
-                        )}
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="email">이메일 *</Label>
-                        <Input id="email" type="email" placeholder="이메일을 입력하세요" className="border-2 border-gray-300 rounded-lg" value={formData.email} onChange={handleChange} />
-                        {formErrors.email && (
-                            <p className="text-sm text-red-600 pt-1">{formErrors.email}</p>
-                        )}
-                    </div>
-
-                    {/* 역할이 'student'일 때만 반 코드 입력창 표시 */}
-                    {role === 'student' && (
-                        <div className="space-y-2 transition-all duration-300">
-                            <Label htmlFor="invite_code">반 코드 *</Label>
-                            <Input id="invite_code" placeholder="선생님께 받은 반 코드를 입력하세요" className="border-2 border-gray-300 rounded-lg" value={formData.invite_code} onChange={handleChange} />
-                            {formErrors.invite_code && (
-                                <p className="text-sm text-red-600 pt-1">{formErrors.invite_code}</p>
-                            )}
+                    <fieldset style={{ marginBottom: "15px" }}>
+                        <legend>가입 유형 *</legend>
+                        <div className="field-row">
+                            <input
+                                id="r-teacher"
+                                type="radio"
+                                name="role"
+                                checked={role === 'teacher'}
+                                onChange={() => setRole('teacher')}
+                            />
+                            <label htmlFor="r-teacher">교사</label>
                         </div>
-                    )}
-
-                    {/* 약관 동의 */}
-                    <div className="flex items-start space-x-2 pt-4 border-t-2 border-gray-300">
-                        <Checkbox
-                            id="terms"
-                            checked={agreed}
-                            onCheckedChange={(checked: boolean | 'indeterminate') => {
-                                setAgreed(checked === true);
-                            }}
-                            className="border-2 border-gray-300 rounded-lg mt-1"
-                        />
-                        <div className="space-y-1">
-                            <Label htmlFor="terms" className="cursor-pointer leading-none">
-                                서비스 이용약관에 동의합니다
-                            </Label>
-                            <p className="text-sm text-gray-600">
-                                개인정보 처리방침 및 이용약관을 확인하였으며 이에 동의합니다.
-                            </p>
+                        <div className="field-row">
+                            <input
+                                id="r-student"
+                                type="radio"
+                                name="role"
+                                checked={role === 'student'}
+                                onChange={() => setRole('student')}
+                            />
+                            <label htmlFor="r-student">학생</label>
                         </div>
-                    </div>
+                    </fieldset>
+                    <form onSubmit={handleSignup}>
+                        <div className="field-row-stacked" style={{ marginBottom: "10px" }}>
+                            <label htmlFor="username">아이디 *</label>
+                            <input
+                                id="username"
+                                type="text"
+                                value={formData.username}
+                                onChange={handleChange}
+                                placeholder="아이디를 입력하세요"
+                                style={{ width: "100%" }}
+                            />
+                            {formErrors.username && <p style={{ color: "red", margin: "2px 0" }}>{formErrors.username}</p>}
+                        </div>
+                        <div className="field-row-stacked" style={{ marginBottom: "10px" }}>
+                            <label htmlFor="password">비밀번호 *</label>
+                            <input
+                                id="password"
+                                type="password"
+                                value={formData.password}
+                                onChange={handleChange}
+                                placeholder="비밀번호를 입력하세요"
+                                style={{ width: "100%" }}
+                            />
+                            {formErrors.password && <p style={{ color: "red", margin: "2px 0" }}>{formErrors.password}</p>}
+                        </div>
+                        <div className="field-row-stacked" style={{ marginBottom: "10px" }}>
+                            <label htmlFor="confirmPassword">비밀번호 확인 *</label>
+                            <input
+                                id="confirmPassword"
+                                type="password"
+                                value={formData.confirmPassword}
+                                onChange={handleChange}
+                                placeholder="비밀번호를 다시 입력하세요"
+                                style={{ width: "100%" }}
+                            />
+                            {formErrors.confirmPassword && <p style={{ color: "red", margin: "2px 0" }}>{formErrors.confirmPassword}</p>}
+                        </div>
+                        <div className="field-row-stacked" style={{ marginBottom: "10px" }}>
+                            <label htmlFor="real_name">이름 (실명) *</label>
+                            <input
+                                id="real_name"
+                                type="text"
+                                value={formData.real_name}
+                                onChange={handleChange}
+                                placeholder="이름을 입력하세요"
+                                style={{ width: "100%" }}
+                            />
+                            {formErrors.real_name && <p style={{ color: "red", margin: "2px 0" }}>{formErrors.real_name}</p>}
+                        </div>
+                        <div className="field-row-stacked" style={{ marginBottom: "10px" }}>
+                            <label htmlFor="nickname">닉네임 *</label>
+                            <input
+                                id="nickname"
+                                type="text"
+                                value={formData.nickname}
+                                onChange={handleChange}
+                                placeholder="닉네임을 입력하세요"
+                                style={{ width: "100%" }}
+                            />
+                            {formErrors.nickname && <p style={{ color: "red", margin: "2px 0" }}>{formErrors.nickname}</p>}
+                        </div>
+                        <div className="field-row-stacked" style={{ marginBottom: "10px" }}>
+                            <label htmlFor="email">이메일 *</label>
+                            <input
+                                id="email"
+                                type="email"
+                                value={formData.email}
+                                onChange={handleChange}
+                                placeholder="이메일을 입력하세요"
+                                style={{ width: "100%" }}
+                            />
+                            {formErrors.email && <p style={{ color: "red", margin: "2px 0" }}>{formErrors.email}</p>}
+                        </div>
+                        {role === 'student' && (
+                            <div className="field-row-stacked" style={{ marginBottom: "10px" }}>
+                                <label htmlFor="invite_code">반 코드 *</label>
+                                <input
+                                    id="invite_code"
+                                    type="text"
+                                    value={formData.invite_code}
+                                    onChange={handleChange}
+                                    placeholder="선생님께 받은 반 코드를 입력하세요"
+                                    style={{ width: "100%" }}
+                                />
+                                {formErrors.invite_code && <p style={{ color: "red", margin: "2px 0" }}>{formErrors.invite_code}</p>}
+                            </div>
+                        )}
+                        <div className="field-row" style={{ marginTop: "20px", marginBottom: "20px", alignItems: "flex-start" }}>
+                            <input
+                                id="terms"
+                                type="checkbox"
+                                checked={agreed}
+                                onChange={(e) => setAgreed(e.target.checked)}
+                            />
+                            <label htmlFor="terms" style={{ lineHeight: "1.4", display: "inline-block", paddingTop: "2px" }}>
+                                서비스 이용약관에 동의합니다.<br />
+                                <span style={{ fontSize: "0.9em", color: "#666" }}>
+                                    개인정보 처리방침 및 이용약관을 확인하였으며 이에 동의합니다.
+                                </span>
+                            </label>
+                        </div>
 
-                    {/* 폼 하단에 표시될 '일반 에러' 메시지 */}
-                    {formErrors.formGeneral && (
-                        <p className="text-sm text-red-600 text-center pb-2">{formErrors.formGeneral}</p>
-                    )}
+                        {formErrors.formGeneral && (
+                            <p style={{ color: "red", textAlign: "center", marginBottom: "10px" }}>{formErrors.formGeneral}</p>
+                        )}
 
-                    <Button
-                        className="w-full bg-black hover:bg-gray-800 text-white rounded-lg h-12"
-                        onClick={handleSignup}
-                        disabled={isLoading}
-                    >
-                        {isLoading ? '회원가입 중...' : '회원가입'}
-                    </Button>
+                        <div style={{ display: "flex", justifyContent: "center", gap: "10px", marginTop: "20px", marginBottom: "10px" }}>
+                            <button
+                                type="submit"
+                                disabled={isLoading}
+                                style={{ padding: "6px 20px", fontWeight: "bold", width: "100%" }}
+                            >
+                                {isLoading ? '진행 중...' : '회원가입'}
+                            </button>
+                        </div>
+                    </form>
 
-                    <div className="text-center pt-2">
-                        <Label>이미 계정이 있으신가요? </Label>
-                        {/* [추가] 역할에 따라 다른 로그인 페이지로 이동하는 링크 */}
+                    <div style={{ textAlign: "center", marginTop: "10px" }}>
+                        <span>이미 계정이 있으신가요? </span>
                         <Link
                             to={role === 'teacher' ? '/login/teacher' : '/login/student'}
-                            className="text-black underline"
+                            style={{ color: "blue", textDecoration: "underline" }}
                         >
                             로그인하기
                         </Link>
                     </div>
-                </CardContent>
-            </Card>
+                </div>
+            </div>
         </div>
     );
 }

@@ -1,15 +1,14 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Button } from '../ui/button';
+import { useState, useEffect, useRef } from 'react';
 import { Badge } from '../ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { useAuth } from "../../contexts/AppContext";
 import { get } from "../../utils/api";
+import { FishIcon } from '../FishIcon';
+import { FishAnimation } from '../FishAnimation';
+import { FISH_ICONS } from '../../utils/sprite-helpers';
 
 type FishGrade = 'COMMON' | 'RARE' | 'LEGENDARY';
 
-interface AquariumFish {
+interface AquariumFishItem {
   entry_id: number;
   fish_id: number;
   fish_name: string;
@@ -17,14 +16,7 @@ interface AquariumFish {
   fish_count: number;
 }
 
-interface AquariumResponse {
-  collection_id: number;
-  student_id: number;
-  total_collected: number;
-  collected_fish: AquariumFish[];
-}
-
-interface EncyclopediaFish {
+interface EncyclopediaFishItem {
   fish_id: number;
   fish_name: string;
   grade: FishGrade;
@@ -32,336 +24,491 @@ interface EncyclopediaFish {
   fish_count: number;
 }
 
-interface EncyclopediaResponse {
-  total_fish: number;
-  collected_count: number;
-  collection_rate: number;
-  fish_list: EncyclopediaFish[];
+interface UIFish {
+  fish_id: number;
+  fish_name: string;
+  grade: FishGrade;
+  current_count: number;
+  is_owned: boolean;
+  size: number;
 }
 
-interface SelectedFishInfo {
-  id: number;
-  name: string;
-  grade: FishGrade;
-  count: number;
-}
+const getGradeColor = (grade: FishGrade) => {
+  switch (grade) {
+    case 'COMMON': return "var(--color-gray-400)";
+    case 'RARE': return "var(--color-blue-500)";
+    case 'LEGENDARY': return "var(--color-yellow-600)";
+    default: return "var(--color-black)";
+  }
+};
+
+const getFishSize = (grade: FishGrade) => {
+  switch (grade) {
+    case 'LEGENDARY': return 3;
+    case 'RARE': return 2;
+    default: return 2;
+  }
+};
 
 export function StudentCollection() {
-  const { user, isAuthenticated, userType } = useAuth();
-  const [selectedFish, setSelectedFish] = useState<SelectedFishInfo | null>(null);
-  const [isDetailOpen, setIsDetailOpen] = useState(false);
-  const [isDeleteWarningOpen, setIsDeleteWarningOpen] = useState(false);
+  const { user, isAuthenticated, userType, access_token } = useAuth();
   const [currentView, setCurrentView] = useState<'aquarium' | 'book'>('aquarium');
-  const [aquariumData, setAquariumData] = useState<AquariumResponse | null>(null);
-  const [encyclopediaData, setEncyclopediaData] = useState<EncyclopediaResponse | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [fishList, setFishList] = useState<UIFish[]>([]);
+  const [aquariumData, setAquariumData] = useState<UIFish[]>([]);
+  const [encyclopediaData, setEncyclopediaData] = useState<UIFish[]>([]);
+  const [aquariumInstances, setAquariumInstances] = useState<{ id: string; fish: UIFish }[]>([]);
+  const [selectedFish, setSelectedFish] = useState<UIFish | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+
+  const [stats, setStats] = useState({ current: 0, total: 0 });
+  const [aquariumStats, setAquariumStats] = useState({ current: 0, total: 0 });
+  const [encyclopediaStats, setEncyclopediaStats] = useState({ current: 0, total: 0 });
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const maxCapacity = 20; // TODO: 백엔드에서 용량 정보를 제공하면 교체
+  const fishTankRef = useRef<HTMLDivElement | null>(null);
+  const bubbleContainerRef = useRef<HTMLDivElement | null>(null);
+  const BASE_SPRITE_SIZE = 24;
+
+  const bubbleFrequency = 400;
+  const bubbleRiseMinSpeed = 50;
+  const bubbleRiseMaxSpeed = 80;
+  const bubbleMinSize = 4;
+  const bubbleMaxSize = 8;
+
+  const normalizeAquarium = (items: AquariumFishItem[]): UIFish[] =>
+    items.map(item => ({
+      fish_id: item.fish_id,
+      fish_name: item.fish_name,
+      grade: item.grade as FishGrade,
+      current_count: item.fish_count,
+      is_owned: true,
+      size: getFishSize(item.grade as FishGrade)
+    }));
+
+  const normalizeEncyclopedia = (items: EncyclopediaFishItem[], collectedCount: number, totalFish: number) => {
+    const converted: UIFish[] = items.map(item => ({
+      fish_id: item.fish_id,
+      fish_name: item.fish_name,
+      grade: item.grade as FishGrade,
+      current_count: item.fish_count,
+      is_owned: item.is_collected,
+      size: getFishSize(item.grade as FishGrade)
+    }));
+
+    return {
+      list: converted,
+      stats: { current: collectedCount, total: totalFish }
+    };
+  };
 
   useEffect(() => {
-    if (!isAuthenticated || userType !== 'student') {
-      setLoading(false);
-      return;
-    }
+    if (!isAuthenticated || userType !== 'student' || !access_token) return;
 
-    const fetchCollection = async () => {
-      setLoading(true);
-      setError(null);
+    let isMounted = true;
+    setIsLoading(true);
+    setError(null);
+
+    const fetchAll = async () => {
       try {
-        const [aquariumRes, encyclopediaRes] = await Promise.all([
+        const [aquariumResult, encyclopediaResult] = await Promise.allSettled([
           get('/api/v1/collection/aquarium'),
           get('/api/v1/collection/encyclopedia')
         ]);
-        const aquariumJson = await aquariumRes.json();
-        const encyclopediaJson = await encyclopediaRes.json();
 
-        if (!aquariumRes.ok) {
-          throw new Error(aquariumJson?.message ?? '수족관 정보를 불러오지 못했습니다.');
-        }
-        if (!encyclopediaRes.ok) {
-          throw new Error(encyclopediaJson?.message ?? '도감 정보를 불러오지 못했습니다.');
+        let successCount = 0;
+        let lastError: string | null = null;
+
+        if (aquariumResult.status === 'fulfilled' && aquariumResult.value?.ok) {
+          try {
+            const json = await aquariumResult.value.json();
+            const converted = normalizeAquarium(json?.data?.collected_fish || []);
+            if (isMounted) {
+              setAquariumData(converted);
+              setAquariumStats({ current: converted.length, total: 0 });
+            }
+            successCount += 1;
+          } catch {
+            lastError = '수족관 데이터를 해석하는 중 문제가 발생했습니다.';
+          }
+        } else {
+          lastError = '수족관 정보를 불러오지 못했습니다.';
         }
 
-        setAquariumData(aquariumJson.data ?? null);
-        setEncyclopediaData(encyclopediaJson.data ?? null);
-      } catch (err: any) {
-        setError(err.message ?? '도감 정보를 불러오지 못했습니다.');
-        setAquariumData(null);
-        setEncyclopediaData(null);
+        if (encyclopediaResult.status === 'fulfilled' && encyclopediaResult.value?.ok) {
+          try {
+            const json = await encyclopediaResult.value.json();
+            const normalized = normalizeEncyclopedia(
+              json?.data?.fish_list || [],
+              json?.data?.collected_count || 0,
+              json?.data?.total_fish || 0
+            );
+            if (isMounted) {
+              setEncyclopediaData(normalized.list);
+              setEncyclopediaStats(normalized.stats);
+            }
+            successCount += 1;
+          } catch {
+            lastError = '도감 데이터를 해석하는 중 문제가 발생했습니다.';
+          }
+        } else {
+          lastError = '도감 정보를 불러오지 못했습니다.';
+        }
+
+        if (successCount === 0) {
+          throw new Error(lastError || '수집 정보를 불러오는 데 실패했습니다.');
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError(err instanceof Error ? err.message : '알 수 없는 오류 발생');
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
-    fetchCollection();
-  }, [isAuthenticated, userType]);
+    fetchAll();
+    return () => {
+      isMounted = false;
+    };
+  }, [isAuthenticated, userType, access_token]);
 
-  const ownedFish = aquariumData?.collected_fish ?? [];
-  const totalOwnedCount = ownedFish.reduce((sum, fish) => sum + (fish.fish_count ?? 0), 0);
-  const encyclopediaFish = encyclopediaData?.fish_list ?? [];
+  const renderFishSprite = (fish: UIFish, scaleOverride?: number) => {
+    const finalScale = scaleOverride ?? fish.size;
+    const finalSize = finalScale * BASE_SPRITE_SIZE;
+    const spriteInfo = FISH_ICONS[fish.fish_id];
+    const isAnimated = spriteInfo?.isAnimated;
+    const animationData = spriteInfo?.animation;
 
-  //로그인 여부 확인
-  if (!isAuthenticated || !user) {
-    return <div className="p-4">로그인 정보 로딩 중...</div>;
-  }
+    const IconComponent = isAnimated && animationData ? (
+      <FishAnimation
+        spriteUrl={animationData.url}
+        totalFrames={animationData.frames}
+        scale={finalScale}
+        duration={animationData.duration}
+      />
+    ) : (
+      <FishIcon
+        fishId={fish.fish_id}
+        scale={finalScale}
+      />
+    );
 
-  const getRarityBadge = (grade: FishGrade) => {
-    switch (grade) {
-      case 'COMMON':
-        return <Badge className="bg-gray-400">커먼</Badge>;
-      case 'RARE':
-        return <Badge className="bg-gray-600">레어</Badge>;
-      case 'LEGENDARY':
-        return <Badge className="bg-black">레전드</Badge>;
-    }
+    return (
+      <div style={{
+        width: `${finalSize}px`,
+        height: `${finalSize}px`,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        {IconComponent}
+      </div>
+    );
   };
 
-  const gradeColorClass = (grade: FishGrade, owned: boolean) => {
-    if (!owned) {
-      return 'bg-gray-200 border-gray-200';
+  useEffect(() => {
+    if (currentView === 'aquarium') {
+      setFishList(aquariumData);
+      setStats(aquariumStats);
+    } else {
+      setFishList(encyclopediaData);
+      setStats(encyclopediaStats);
     }
-    switch (grade) {
-      case 'LEGENDARY':
-        return 'bg-gray-800 border-gray-700';
-      case 'RARE':
-        return 'bg-gray-600 border-gray-500';
-      default:
-        return 'bg-gray-400 border-gray-300';
-    }
-  };
+  }, [currentView, aquariumData, aquariumStats, encyclopediaData, encyclopediaStats]);
 
-  const handleFishClick = (fish: SelectedFishInfo) => {
+  const handleFishClick = (fish: UIFish) => {
     setSelectedFish(fish);
     setIsDetailOpen(true);
   };
 
-  const handleDeleteFish = () => {
-    if (!selectedFish) return;
+  useEffect(() => {
+    if (currentView !== "aquarium" || isLoading || error) return;
 
-    // 실제로는 API 호출
-    console.log('Deleting fish:', selectedFish.id);
-    alert('물고기가 삭제되었습니다.');
-    setIsDeleteWarningOpen(false);
-    setIsDetailOpen(false);
+    const instances: { id: string; fish: UIFish }[] = [];
+    fishList.forEach((fish, fishIndex) => {
+      Array.from({ length: fish.current_count }).forEach((_, countIndex) => {
+        instances.push({
+          id: `${fish.fish_id}-${fishIndex}-${countIndex}`, // 고유 키 생성
+          fish: fish,
+        });
+      });
+    });
+
+    setAquariumInstances(instances);
+
+    const cleanup = () => {
+      const tank = fishTankRef.current;
+      if (tank) {
+        const fishElements = Array.from(tank.children) as HTMLElement[];
+        fishElements.forEach(fish => clearTimeout((fish as any).moveTimer));
+      }
+    };
+    return cleanup;
+
+  }, [currentView, fishList, isLoading])
+
+  useEffect(() => {
+    if (currentView !== "aquarium" || aquariumInstances.length === 0) return;
+
+    const tank = fishTankRef.current;
+    if (!tank) return;
+
+    const fishElements = Array.from(tank.children) as HTMLElement[];
+    fishElements.forEach(fishContainer => {
+      setRandomPosition(fishContainer, tank);
+      moveFishRandomly(fishContainer, tank);
+    });
+
+  }, [aquariumInstances]);
+
+  function setRandomPosition(fish: HTMLElement, tank: HTMLDivElement) {
+    const rect = tank.getBoundingClientRect();
+    const padding = 10;
+    fish.style.left = Math.random() * (rect.width - fish.offsetWidth - padding * 2) + padding + "px";
+    fish.style.top = Math.random() * (rect.height - fish.offsetHeight - padding * 2) + padding + "px";
+  }
+
+  function moveFishRandomly(fish: HTMLElement, tank: HTMLDivElement) {
+    const animate = () => {
+      const rect = tank.getBoundingClientRect();
+      const currentLeft = parseFloat(fish.style.left) || 0;
+      const padding = 10;
+      const newX = Math.random() * (rect.width - fish.offsetWidth - padding * 2) + padding;
+      const newY = Math.random() * (rect.height - fish.offsetWidth - padding * 2) + padding;
+
+      const minDuration = 4;
+      const maxDuration = 8;
+      const duration = Math.random() * (maxDuration - minDuration) + minDuration;
+
+      fish.style.transform = newX > currentLeft ? "scaleX(1)" : "scaleX(-1)";
+      fish.style.transition = `left ${duration}s ease-in-out, top ${duration}s ease-in-out`;
+      fish.style.left = `${newX}px`;
+      fish.style.top = `${newY}px`;
+
+      if ((fish as any).moveTimer) clearTimeout((fish as any).moveTimer);
+
+      const pauseTime = Math.random() * 500;
+      (fish as any).moveTimer = setTimeout(animate, (duration * 1000) + pauseTime);
+    };
+    animate();
+  }
+
+  const getRarityBadge = (grade: FishGrade) => {
+    let bgClass = "bg-gray-400";
+    if (grade === 'RARE') bgClass = "bg-blue-500";
+    if (grade === 'LEGENDARY') bgClass = "bg-yellow-600";
+
+    return <Badge className={bgClass}>{grade}</Badge>;
   };
 
-  const isNearCapacity = totalOwnedCount >= maxCapacity * 0.8;
-  const isFullCapacity = totalOwnedCount >= maxCapacity;
+  useEffect(() => {
+    if (currentView !== 'aquarium' || !fishTankRef.current || !bubbleContainerRef.current) return;
 
-  const aquariumSummary = useMemo(() => {
-    return {
-      species: ownedFish.length,
-      total: totalOwnedCount
-    };
-  }, [ownedFish.length, totalOwnedCount]);
+    const tank = fishTankRef.current;
+    const bubbleContainer = bubbleContainerRef.current;
 
-  const encyclopediaSummary = useMemo(() => {
-    if (!encyclopediaData) {
-      return { collected: 0, total: 0 };
-    }
-    return {
-      collected: encyclopediaData.collected_count ?? 0,
-      total: encyclopediaData.total_fish ?? 0
+    const containerWidth = tank.offsetWidth;
+    const containerHeight = tank.offsetHeight;
+
+    const createBubble = () => {
+      // 1. DOM 요소 생성 및 스타일링
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble-sprite';
+
+      const size = bubbleMinSize + Math.random() * (bubbleMaxSize - bubbleMinSize);
+      bubble.style.width = `${size}px`;
+      bubble.style.height = `${size}px`;
+      bubble.style.left = `${Math.random() * (containerWidth - size)}px`;
+      bubble.style.bottom = '0px';
+      bubble.style.opacity = (0.6 + Math.random() * 0.4).toFixed(2);
+      bubble.style.position = 'absolute';
+
+      bubbleContainer.appendChild(bubble);
+
+      let y = 0;
+      const intervalSpeed = bubbleRiseMinSpeed + Math.random() * (bubbleRiseMaxSpeed - bubbleRiseMinSpeed);
+
+      // 2. 기포 상승 애니메이션 (setInterval)
+      const riseInterval = setInterval(() => {
+        y += 2; // 매 틱마다 2px씩 상승
+        bubble.style.bottom = `${y}px`;
+
+        // 3. 제거 조건 (상단 경계를 벗어나면)
+        if (y > containerHeight) {
+          clearInterval(riseInterval);
+          bubble.remove();
+        }
+      }, intervalSpeed);
+
+      // 안전을 위해 interval ID를 요소에 저장
+      (bubble as any).riseInterval = riseInterval;
     };
-  }, [encyclopediaData]);
+
+    // 4. 기포 생성 간격 설정
+    const generationInterval = setInterval(createBubble, bubbleFrequency);
+
+    // 5. 클린업 (컴포넌트 언마운트/뷰 변경 시 정리)
+    return () => {
+      clearInterval(generationInterval);
+
+      // 현재 남아있는 모든 기포의 interval 정리 및 DOM에서 제거
+      const existingBubbles = Array.from(bubbleContainer.children) as HTMLElement[];
+      existingBubbles.forEach(b => {
+        if ((b as any).riseInterval) clearInterval((b as any).riseInterval);
+        b.remove();
+      });
+    };
+
+  }, [currentView, fishList]);
+
+  //로그인 여부 확인
+  if (!isAuthenticated || !user) {
+    return <div className="p-6">로그인 정보 확인 중...</div>;
+  }
 
   if (userType !== 'student') {
-    return <div className="p-6">학생 전용 페이지입니다.</div>;
+    return <div className="p-6">접근 권한이 없습니다.</div>;
   }
-
-  if (loading) {
-    return <div className="p-6">도감 정보를 불러오는 중...</div>;
-  }
-
-  if (error) {
-    return <div className="p-6 text-red-600">{error}</div>;
-  }
+  if (isLoading) return <div className="p-4">컬렉션 정보 로딩 중...</div>;
+  if (error) return <div className="p-4" style={{ color: "red" }}>오류: {error}</div>;
 
   return (
-    <div className="p-4 space-y-4 bg-white">
-      {/* 헤더 */}
-      <div className="text-center mb-6">
-        <h1 className="text-xl font-medium text-black">도감</h1>
-        {currentView === 'aquarium' && (
-          <p className="text-sm text-gray-600">
-            수집한 물고기: {aquariumSummary.species}종 / 총 {aquariumSummary.total}마리
-          </p>
-        )}
-        {currentView === 'book' && (
-          <p className="text-sm text-gray-600">
-            물고기 도감: {encyclopediaSummary.collected}종 / {encyclopediaSummary.total}종
-          </p>
-        )}
-      </div>
+    <div className="p-4 space-y-4 pb-20 max-w-screen-xl mx-auto" style={{ backgroundColor: "var(--bg-color)", minHeight: "100vh" }}>
+      <menu role="tablist" style={{ margin: "0 0 -2px 0" }}>
+        <li role="tab" aria-selected={currentView === 'aquarium'}>
+          <a href="#" onClick={(e) => { e.preventDefault(); setCurrentView('aquarium'); }}>수족관</a>
+        </li>
+        <li role="tab" aria-selected={currentView === 'book'}>
+          <a href="#" onClick={(e) => { e.preventDefault(); setCurrentView('book'); }}>도감</a>
+        </li>
+      </menu>
 
-      {/* 용량 경고 */}
-      {isNearCapacity && (
-        <Card className="border-2 border-gray-400">
-          <CardContent className="p-4">
-            <p className="text-center text-black">
-              {isFullCapacity
-                ? '⚠️ 수족관이 가득 찼습니다! 일부 물고기를 삭제해주세요.'
-                : '⚠️ 수족관 용량이 부족합니다. 곧 정리가 필요합니다.'
-              }
-            </p>
-            <p className="text-center text-sm text-gray-600 mt-1">
-              현재: {totalOwnedCount}/{maxCapacity}
-            </p>
-          </CardContent>
-        </Card>
-      )}
+      {/* 메인 윈도우 */}
+      <div className="window" role="tabpanel" style={{ width: "100%", margin: "0" }}>
+        <div className="window-body">
 
-      {/* 보기 모드 선택 */}
-      <Tabs value={currentView} onValueChange={(value: string) => setCurrentView(value as 'aquarium' | 'book')}>
-        <TabsList className="grid w-full grid-cols-2 bg-gray-100">
-          <TabsTrigger value="aquarium" className="text-black">수족관</TabsTrigger>
-          <TabsTrigger value="book" className="text-black">도감</TabsTrigger>
-        </TabsList>
+          {/* 수족관 뷰 */}
+          {currentView === 'aquarium' && (
+            <>
+              <div style={{ textAlign: "center", marginBottom: "10px" }}>
+                내 수족관: 총 {fishList.reduce((acc, cur) => acc + cur.current_count, 0)}마리 헤엄치는 중
+              </div>
 
-        {/* 수족관 보기 */}
-        <TabsContent value="aquarium" className="space-y-4">
-          <Card className="border-2 border-gray-300">
-            <CardContent className="p-6">
-              {/* 내 수족관 제목 */}
-              <h2 className="text-black text-center mb-4" style={{ writingMode: 'horizontal-tb' }}>내 수족관</h2>
-              {/* 수족관 배경 */}
-              <div className="w-full h-64 bg-gray-100 border-2 border-gray-300 rounded p-4 relative overflow-hidden">
-                <div className="grid grid-cols-4 gap-2 h-full">
-                  {ownedFish.map((fish) => (
-                    Array.from({ length: fish.fish_count }, (_, index) => (
-                      <div
-                        key={`${fish.fish_id}-${index}`}
-                        onClick={() =>
-                          handleFishClick({
-                            id: fish.fish_id,
-                            name: fish.fish_name,
-                            grade: fish.grade,
-                            count: fish.fish_count
-                          })
-                        }
-                        className={`w-12 h-12 rounded flex items-center justify-center cursor-pointer border ${gradeColorClass(fish.grade, true)}`}
-                      >
-                        <span className="text-white text-xs">물고기</span>
+              <div
+                className="sunken-panel"
+                style={{ width: "100%", height: "400px", backgroundImage: "var(--fg-aquarium), var(--bg-aquarium)", backgroundRepeat: "repeat-x, repeat", backgroundPosition: "bottom, center", position: "relative", overflow: "hidden" }}
+                ref={fishTankRef}
+              >
+                <div
+                  ref={bubbleContainerRef}
+                  style={{ position: 'absolute', inset: 0, zIndex: 0 }}
+                />
+                {/* 수조 내부 */}
+                {aquariumInstances.map(({ id, fish }) => {
+                  const finalSize = fish.size * BASE_SPRITE_SIZE;
+                  return (
+                    <div
+                      key={id}
+                      onClick={() => handleFishClick(fish)}
+                      style={{
+                        position: "absolute",
+                        width: `${finalSize}px`,
+                        height: `${finalSize}px`,
+                        cursor: "pointer",
+                        zIndex: 1,
+                      }}
+                    >
+                      {renderFishSprite(fish)}
+                    </div>
+                  );
+                })}
+              </div>
+              <style>{`
+        .bubble-sprite {
+            background-color: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            border-radius: 50%;
+            box-shadow: 0 0 2px rgba(255, 255, 255, 0.8);
+            transition: opacity 0.3s;
+        }
+      `}</style>
+            </>
+          )}
+
+          {/* 도감 뷰 */}
+          {currentView === 'book' && (
+            <>
+              <div style={{ textAlign: "center", marginBottom: "10px" }}>
+                수집 진행도: {stats.current} / {stats.total} ({((stats.current / stats.total) * 100).toFixed(1)}%)
+              </div>
+
+              <div className="sunken-panel" style={{ height: "400px", overflowY: "scroll", padding: "10px", background: "#fff" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))", gap: "10px" }}>
+                  {fishList.map((fish) => (
+                    <div
+                      key={fish.fish_id}
+                      className="window"
+                      onClick={() => fish.is_owned && handleFishClick(fish)}
+                      style={{
+                        cursor: fish.is_owned ? "pointer" : "default",
+                        opacity: fish.is_owned ? 1 : 0.5,
+                        backgroundColor: fish.is_owned ? "#fff" : "#eee"
+                      }}
+                    >
+                      <div className="window-body" style={{ textAlign: "center", padding: "5px" }}>
+                        <div style={{ height: "50px", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "5px", objectFit: "contain" }}>
+                          {fish.is_owned ? (
+                            renderFishSprite(fish, 2)
+                          ) : (
+                            <span style={{ fontSize: "30px" }}>❓</span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: "12px", fontWeight: "bold", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {fish.fish_name}
+                        </div>
+                        <div style={{ fontSize: "10px", marginTop: "2px", color: getGradeColor(fish.grade) }}>
+                          {fish.grade}
+                        </div>
                       </div>
-                    ))
+                    </div>
                   ))}
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+            </>
+          )}
 
-        {/* 도감 보기 */}
-        <TabsContent value="book" className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            {encyclopediaFish.map((fish) => (
-              <Card
-                key={fish.fish_id}
-                className={`border-2 cursor-pointer ${fish.is_collected ? 'border-gray-300' : 'border-gray-200'
-                  }`}
-                onClick={() =>
-                  fish.is_collected &&
-                  handleFishClick({
-                    id: fish.fish_id,
-                    name: fish.fish_name,
-                    grade: fish.grade,
-                    count: fish.fish_count
-                  })
-                }
-              >
-                <CardContent className="p-3">
-                  <div className={`w-full h-20 rounded mb-2 flex items-center justify-center ${gradeColorClass(fish.grade, fish.is_collected)}`}>
-                    <span className={fish.is_collected ? 'text-white' : 'text-gray-400'}>
-                      {fish.is_collected ? '물고기' : '???'}
-                    </span>
-                  </div>
+        </div>
+      </div>
 
-                  <div className="text-center space-y-1">
-                    <p className={`font-medium ${fish.is_collected ? 'text-black' : 'text-gray-400'}`}>
-                      {fish.is_collected ? fish.fish_name : '???'}
-                    </p>
-                    {fish.is_collected && (
-                      <>
-                        {getRarityBadge(fish.grade)}
-                        <p className="text-xs text-gray-600">{fish.fish_count}마리</p>
-                      </>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
-
-      </Tabs>
-
-      {/* 물고기 상세 정보 모달 */}
-      <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-        <DialogContent className="bg-white border-2 border-gray-300">
-          <DialogHeader>
-            <DialogTitle className="text-black">{selectedFish?.name ?? '물고기'}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            {/* 물고기 이미지 */}
-            <div className={`w-32 h-32 rounded mx-auto flex items-center justify-center ${selectedFish ? gradeColorClass(selectedFish.grade, true) : 'bg-gray-200'
-              }`}>
-              <span className="text-white">물고기</span>
+      {/* [모달] 물고기 상세 정보 */}
+      {isDetailOpen && selectedFish && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="window" style={{ width: '90%', maxWidth: '300px' }}>
+            <div className="title-bar">
+              <div className="title-bar-text">상세 정보</div>
+              <div className="title-bar-controls">
+                <button aria-label="Close" onClick={() => setIsDetailOpen(false)} />
+              </div>
             </div>
-
-            {/* 물고기 정보 */}
-            <div className="text-center space-y-2">
-              {selectedFish && getRarityBadge(selectedFish.grade)}
-              <p className="text-black">보유 수량: {selectedFish?.count ?? 0}마리</p>
-            </div>
-
-            {/* 액션 버튼 */}
-            <div className="flex space-x-2">
-              {selectedFish && selectedFish.count > 1 && (
-                <Button
-                  onClick={() => setIsDeleteWarningOpen(true)}
-                  className="flex-1 bg-gray-600 text-white hover:bg-gray-700"
-                >
-                  삭제
-                </Button>
-              )}
-              <Button
-                onClick={() => setIsDetailOpen(false)}
-                className="flex-1 bg-white text-black border border-gray-300"
-              >
-                닫기
-              </Button>
+            <div className="window-body text-center">
+              <div className="sunken-panel" style={{ width: "100px", height: "100px", margin: "0 auto 10px auto", display: "flex", alignItems: "center", justifyContent: "center", background: "#fff" }}>
+                {renderFishSprite(selectedFish, 2)}
+              </div>
+              <h4 style={{ margin: "5px 0" }}>{selectedFish.fish_name}</h4>
+              <div style={{ marginBottom: "10px" }}>{getRarityBadge(selectedFish.grade)}</div>
+              <fieldset>
+                <legend>정보</legend>
+                <p style={{ fontSize: "12px", margin: "4px 0" }}>보유 수량: {selectedFish.current_count}마리</p>
+              </fieldset>
+              <div style={{ marginTop: "15px" }}>
+                <button onClick={() => setIsDetailOpen(false)}>닫기</button>
+              </div>
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* 삭제 확인 모달 */}
-      <Dialog open={isDeleteWarningOpen} onOpenChange={setIsDeleteWarningOpen}>
-        <DialogContent className="bg-white border-2 border-gray-300">
-          <DialogHeader>
-            <DialogTitle className="text-black">물고기 삭제</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <p className="text-black">
-              {selectedFish?.name ?? '물고기'} 1마리를 삭제하시겠습니까?
-            </p>
-            <div className="flex space-x-2">
-              <Button
-                onClick={handleDeleteFish}
-                className="flex-1 bg-gray-600 text-white"
-              >
-                삭제
-              </Button>
-              <Button
-                onClick={() => setIsDeleteWarningOpen(false)}
-                className="flex-1 bg-white text-black border border-gray-300"
-              >
-                취소
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+      )}
     </div>
   );
 }
