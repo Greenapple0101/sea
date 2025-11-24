@@ -1,254 +1,165 @@
-import { useState, useEffect } from 'react';
-import { useAuth } from '../../contexts/AppContext';
-import { get } from "../../utils/api";
-
-// API 응답 데이터 타입 정의
-interface CompletionStatus {
-  completed_count: number;
-  required_count: number;
-  total_count: number;
-  completion_rate: number;
-  is_achievable: boolean;
-  completion_condition_text: string;
-}
-
-interface MyStatus {
-  student_id: number;
-  student_name: string;
-  is_completed: boolean;
-  completed_at: string | null;
-  status_text: string;
-}
-
-interface CompletedStudent {
-  student_id: number;
-  student_name: string;
-  completed_at: string;
-}
-
-interface IncompleteStudent {
-  student_id: number;
-  student_name: string;
-  status_text: string;
-}
-
-interface QuestDetailData {
-  quest_id: number;
-  template: string;
-  title: string;
-  content: string;
-  status: string;
-  reward_coral: number;
-  reward_research_data: number;
-  deadline: string;
-  created_at: string;
-  completion_status: CompletionStatus;
-  my_status: MyStatus;
-  completed_students: CompletedStudent[];
-  incomplete_students: IncompleteStudent[];
-}
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Badge } from '../ui/badge';
+import { Button } from '../ui/button';
+import { useAuth, StudentUser } from '../../contexts/AppContext';
 
 interface QuestDetailPageProps {
   quest: {
     id: number;
-    title?: string;
+    title: string;
+    description: string;
+    completed: number;
+    total: number;
+    incompleteStudents: string[];
   };
   onBack: () => void;
 }
 
-function formatDateTime(isoString: string | null) {
-  if (!isoString) return '-';
-  const date = new Date(isoString);
-  return date.toLocaleString('ko-KR', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-}
-
 export function QuestDetailPage({ quest, onBack }: QuestDetailPageProps) {
-  const { user, isAuthenticated, userType, access_token } = useAuth();
+  const { user, isAuthenticated, userType } = useAuth();
 
-  const [questDetail, setQuestDetail] = useState<QuestDetailData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!isAuthenticated || !user || !access_token) return;
-
-    const fetchQuestDetail = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const response = await get(`/api/v1/quests/group/${quest.id}/student`);
-
-        if (!response.ok) {
-          throw new Error('퀘스트 상세 정보를 불러오는데 실패했습니다.');
-        }
-
-        const result = await response.json();
-        if (result.success) {
-          setQuestDetail(result.data);
-        } else {
-          throw new Error(result.message || '데이터를 불러오지 못했습니다.');
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchQuestDetail();
-  }, [quest.id, isAuthenticated, user, access_token]);
+  // 완료한 학생 목록 (실제로는 API에서 가져와야 함)
+  const completedStudents = [
+    { name: '김학생', completedAt: '2024-01-15 14:30', status: '완료' },
+    { name: '이학생', completedAt: '2024-01-15 15:20', status: '완료' },
+    { name: '박학생', completedAt: '2024-01-15 16:10', status: '완료' },
+    { name: '최학생', completedAt: '2024-01-15 17:00', status: '완료' },
+    { name: '정학생', completedAt: '2024-01-15 18:30', status: '완료' },
+    { name: '한학생', completedAt: '2024-01-15 19:15', status: '완료' },
+    { name: '서학생', completedAt: '2024-01-15 20:00', status: '완료' },
+    { name: '윤학생', completedAt: '2024-01-15 21:30', status: '완료' },
+    { name: '임학생', completedAt: '2024-01-15 22:15', status: '완료' },
+    { name: '조학생', completedAt: '2024-01-15 23:00', status: '완료' },
+    { name: '강학생', completedAt: '2024-01-16 09:30', status: '완료' },
+    { name: '송학생', completedAt: '2024-01-16 10:20', status: '완료' }
+  ];
 
   //로그인 여부 확인
   if (!isAuthenticated || !user) {
-    return <div className="p-6">로그인 정보 확인 중...</div>;
+    return <div className="p-6">로딩중...</div>;
   }
 
   if (userType !== 'student') {
-    return <div className="p-6">접근 권한이 없습니다.</div>;
+    return <div className="p-6">학생 전용 상세 페이지입니다.</div>;
   }
 
-  if (isLoading) {
-    return (
-      <div className="p-6 text-center">
-        <p>로딩 중...</p>
-      </div>
-    );
-  }
+  const currentUser = user as StudentUser;
 
-  if (error || !questDetail) {
-    return (
-      <div className="p-6 text-center">
-        <p className="text-red-600 mb-4">{error || '데이터를 찾을 수 없습니다.'}</p>
-        <button onClick={onBack}>← 뒤로가기</button>
-      </div>
-    );
-  }
-
-  const { completion_status, my_status } = questDetail;
+  // 본인 확인 여부 (실제로는 사용자 데이터에서 가져와야 함)
+  const myStatus = completedStudents.find(student => student.name === currentUser.real_name) ? '완료' : '미완료';
 
   return (
-    <div className="p-4 space-y-6 max-w-screen-xl mx-auto">
-      {/* 상단 네비게이션 */}
-      <div style={{ marginBottom: "10px" }}>
-        <button onClick={onBack} style={{ minWidth: "80px" }}>
+    <div className="p-6 space-y-6 bg-gray-50">
+      {/* 헤더 */}
+      <div className="flex items-center justify-between">
+        <Button
+          onClick={onBack}
+          variant="outline"
+          className="border-2 border-gray-300"
+        >
           ← 뒤로가기
-        </button>
+        </Button>
+        <h1 className="text-xl font-bold text-black">퀘스트 상세</h1>
+        <div></div>
       </div>
 
-      {/* 퀘스트 상세 정보 윈도우 */}
-      <div className="window" style={{ width: "100%" }}>
-        <div className="title-bar">
-          <div className="title-bar-text">퀘스트 상세 정보</div>
-          <div className="title-bar-controls">
-            <button aria-label="Minimize" />
-            <button aria-label="Maximize" />
-            <button aria-label="Close" onClick={onBack} />
-          </div>
-        </div>
-        <div className="window-body">
-          <div style={{ textAlign: "center", marginBottom: "15px" }}>
-            <h4 style={{ margin: "0 0 8px 0", fontSize: "18px" }}>{questDetail.title}</h4>
-            <p style={{ margin: 0, color: "#666", whiteSpace: "pre-wrap" }}>{questDetail.content}</p>
-            <div style={{ marginTop: "8px", fontSize: "12px", color: "#888" }}>
-              마감일: {questDetail.deadline}
+      {/* 퀘스트 정보 */}
+      <Card className="border-2 border-gray-300">
+        <CardHeader>
+          <CardTitle className="text-black">{quest.title}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-gray-600 mb-4">{quest.description}</p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-gray-600">진행률:</span>
+              <span className="font-semibold text-black">{quest.completed}/{quest.total}명</span>
             </div>
+            <Badge className="bg-gray-100 text-black border-gray-300">
+              {Math.round((quest.completed / quest.total) * 100)}% 완료
+            </Badge>
           </div>
+        </CardContent>
+      </Card>
 
-          <fieldset style={{ padding: "10px", marginBottom: "10px" }}>
-            <legend>진행 현황</legend>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", marginBottom: "4px" }}>
-              <span>달성률 ({completion_status.completion_condition_text})</span>
-              <span>{completion_status.completed_count}/{completion_status.total_count}명 ({completion_status.completion_rate}%)</span>
+      {/* 본인 상태 */}
+      <Card className="border-2 border-gray-300">
+        <CardHeader>
+          <CardTitle className="text-black">내 상태</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between p-4 bg-gray-50 border border-gray-300 rounded-lg">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                <span className="text-xs font-bold">M</span>
+              </div>
+              <div>
+                <p className="font-medium text-black">{currentUser.real_name}</p>
+                <p className="text-sm text-gray-600">@{currentUser.real_name}</p>
+              </div>
             </div>
-            <div className="progress-indicator segmented" style={{ width: "100%", height: "20px", border: "2px inset #dfdfdf" }}>
-              <div
-                className="progress-indicator-bar"
-                style={{
-                  width: `${completion_status.completion_rate}%`,
-                  backgroundColor: "transparent",
-                  backgroundImage: "linear-gradient(90deg, #000080 0 16px, transparent 0 2px)"
-                }}
-              />
-            </div>
-            <div style={{ textAlign: "right", fontSize: "11px", marginTop: "4px", color: completion_status.is_achievable ? "green" : "red" }}>
-              {completion_status.is_achievable ? "달성 가능" : "달성 불가"}
-            </div>
-          </fieldset>
-
-          {/* 내 상태 표시 */}
-          <div className="status-bar">
-            <p className="status-bar-field">내 상태</p>
-            <p className="status-bar-field" style={{ textAlign: "right", fontWeight: "bold", color: my_status.is_completed ? "blue" : "red" }}>
-              {my_status.status_text} {my_status.completed_at && `(${formatDateTime(my_status.completed_at)})`}
-            </p>
+            <Badge className={myStatus === '완료' ? 'bg-black text-white border-black' : 'bg-gray-100 text-black border-gray-300'}>
+              {myStatus}
+            </Badge>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      {/* 완료한 학생 목록 윈도우 */}
-      <div className="window" style={{ width: "100%" }}>
-        <div className="title-bar">
-          <div className="title-bar-text">완료한 학생 목록 ({questDetail.completed_students.length}명)</div>
-        </div>
-        <div className="window-body">
-          <div className="sunken-panel" style={{ height: "200px", overflowY: "auto", background: "#fff", padding: "5px" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr>
-                  <th style={{ textAlign: "left", padding: "4px", borderBottom: "1px solid #000" }}>이름</th>
-                  <th style={{ textAlign: "right", padding: "4px", borderBottom: "1px solid #000" }}>완료 시간</th>
-                </tr>
-              </thead>
-              <tbody>
-                {questDetail.completed_students.map((student) => (
-                  <tr key={student.student_id}>
-                    <td style={{ padding: "4px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                        <div style={{ width: "16px", height: "16px", background: "#e0e0e0", border: "1px solid #808080", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "10px" }}>S</div>
-                        {student.student_name}
-                        {student.student_id === Number(user.id) && <span style={{ fontSize: "10px", color: "blue" }}>(나)</span>}
-                      </div>
-                    </td>
-                    <td style={{ padding: "4px", textAlign: "right", fontSize: "12px", color: "#666" }}>
-                      {formatDateTime(student.completed_at)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      {/* 완료한 학생 목록 */}
+      <Card className="border-2 border-gray-300">
+        <CardHeader>
+          <CardTitle className="text-black">완료한 학생 ({quest.completed}명)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3 max-h-64 overflow-y-auto">
+            {completedStudents.map((student, index) => (
+              <div key={index} className="flex items-center justify-between p-3 bg-gray-50 border border-gray-300 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                    <span className="text-xs font-bold">S</span>
+                  </div>
+                  <div>
+                    <p className="font-medium text-black">{student.name}</p>
+                    <p className="text-xs text-gray-600">{student.completedAt}</p>
+                  </div>
+                </div>
+                <Badge className="bg-black text-white border-black">
+                  {student.status}
+                </Badge>
+              </div>
+            ))}
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      {/* 미완료 학생 목록 윈도우 (있는 경우만 표시) */}
-      {questDetail.incomplete_students.length > 0 && (
-        <div className="window" style={{ width: "100%" }}>
-          <div className="title-bar">
-            <div className="title-bar-text">미완료 학생 목록 ({questDetail.incomplete_students.length}명)</div>
-          </div>
-          <div className="window-body">
-            <div className="sunken-panel" style={{ maxHeight: "150px", overflowY: "auto", background: "#fff", padding: "5px" }}>
-              <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-                {questDetail.incomplete_students.map((student) => (
-                  <li key={student.student_id} style={{ padding: "4px", borderBottom: "1px dotted #ccc", display: "flex", justifyContent: "space-between" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                      <div style={{ width: "16px", height: "16px", background: "#ffcccc", border: "1px solid #ff0000", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "10px", color: "red" }}>!</div>
-                      {student.student_name}
-                      {student.student_id === Number(user.id) && <span style={{ fontSize: "10px", color: "red" }}>(나)</span>}
+      {/* 미완료 학생 목록 */}
+      {quest.incompleteStudents.length > 0 && (
+        <Card className="border-2 border-gray-300">
+          <CardHeader>
+            <CardTitle className="text-black">미완료 학생 ({quest.incompleteStudents.length}명)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {quest.incompleteStudents.map((student, index) => (
+                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 border border-gray-300 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                      <span className="text-xs font-bold">S</span>
                     </div>
-                    <span style={{ color: "red", fontSize: "12px" }}>{student.status_text}</span>
-                  </li>
-                ))}
-              </ul>
+                    <div>
+                      <p className="font-medium text-black">{student}</p>
+                      <p className="text-xs text-gray-600">미완료</p>
+                    </div>
+                  </div>
+                  <Badge className="bg-gray-100 text-black border-gray-300">
+                    미완료
+                  </Badge>
+                </div>
+              ))}
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

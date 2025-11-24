@@ -1,400 +1,520 @@
-import React, { useState, useEffect } from 'react';
-import { Loader2 } from 'lucide-react';
-import { useAuth } from "../../contexts/AppContext";
-import { get, post } from "../../utils/api";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Button } from '../ui/button';
+import { Progress } from '../ui/progress';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
+import { useAuth } from '../../contexts/AppContext';
+import { get, post } from '../../utils/api';
 
-interface BossHp {
-  total: number;
-  current: number;
-  percentage: number;
-}
-
-interface MyContribution {
-  total_damage: number;
-  last_attack_at: string | null;
-}
-
-interface RaidInfo {
+interface StudentRaidPayload {
   raid_id: number;
-  template: string;
-  template_name: string;
+  class_id: number;
+  class_name: string;
   raid_name: string;
-  difficulty: string;
-  status: "ACTIVE" | "COMPLETED" | "Failed";
-  boss_hp: BossHp;
-  end_date: string;
-  remaining_time: string;
+  template_display_name: string;
+  status: 'ACTIVE' | 'COMPLETED' | 'EXPIRED' | 'TERMINATED';
+  total_boss_hp: number;
+  current_boss_hp: number;
+  remaining_seconds: number;
   reward_coral: number;
-  participants: number;
-  my_contribution: MyContribution;
-  my_research_data: number;
+  reward_research_data: number;
+  special_reward_description?: string;
+  my_total_contribution: number;
+  remaining_research_data: number;
 }
 
-interface AttackLog {
-  log_id: number;
-  student_name: string;
-  damage: number;
-  timestamp: string;
-  time_ago: string;
+interface RaidLogItem {
+  log_id?: number;
+  type: string;
+  student_name?: string;
+  damage_amount?: number;
+  message?: string;
+  created_at: string;
 }
 
 export function StudentRaid() {
-  const { user, isAuthenticated, userType, access_token } = useAuth();
-
-  const [raidInfo, setRaidInfo] = useState<RaidInfo | null>(null);
-  const [logs, setLogs] = useState<AttackLog[]>([]);
+  const { user, isAuthenticated, userType } = useAuth();
+  const [raidData, setRaidData] = useState<StudentRaidPayload | null>(null);
+  const [logs, setLogs] = useState<RaidLogItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
   const [isContributeOpen, setIsContributeOpen] = useState(false);
   const [contributeAmount, setContributeAmount] = useState(0);
-
-  const [isDiceRolling, setIsDiceRolling] = useState(false);
+  const [isDiceModalOpen, setIsDiceModalOpen] = useState(false);
+  const [pendingContribution, setPendingContribution] = useState<number | null>(null);
   const [diceResult, setDiceResult] = useState<number | null>(null);
-  const [lastContributeResult, setLastContributeResult] = useState<{
-    base: number;
-    bonus: number;
-    total: number;
-    diceResult: number;
-  } | null>(null);
+  const [isRolling, setIsRolling] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const socketRef = useRef<WebSocket | null>(null);
 
-  // 1. 레이드 정보 및 로그 조회
-  const fetchRaidData = async () => {
-    if (!access_token) return;
-    setLoading(true);
-    setError(null);
+  const appendLog = useCallback((log: RaidLogItem) => {
+    setLogs((prev) => [log, ...prev].slice(0, 100));
+  }, []);
 
+  const fetchLogs = useCallback(async (raidId: number) => {
     try {
-      const raidRes = await get('/api/v1/raids/my-raid');
-      if (raidRes.status === 404) {
-        setError("진행 중인 레이드가 없습니다.");
-        setRaidInfo(null);
-        return;
-      }
-      if (!raidRes.ok) throw new Error("레이드 정보를 불러오는데 실패했습니다.");
-
-      const raidJson = await raidRes.json();
-      setRaidInfo(raidJson.data);
-
-      // 로그 조회 (REST 방식)
-      const logsRes = await get(`/api/v1/raids/{raidId}/logs`);
-      if (logsRes.ok) {
-        const logsJson = await logsRes.json();
-        setLogs(logsJson.data.logs);
+      const response = await get(`/api/v1/raids/${raidId}/logs?page=0&size=50`);
+      const json = await response.json();
+      if (response.ok && json?.data?.logs) {
+        setLogs(json.data.logs);
       }
     } catch (err) {
-      setError((err as Error).message);
+      console.error('레이드 로그 조회 실패', err);
+    }
+  }, []);
+
+  const connectWebSocket = useCallback((raidId: number) => {
+    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    const ws = new WebSocket(`${protocol}://${window.location.host}/ws/raids/${raidId}/logs`);
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        appendLog({
+          type: data.type,
+          student_name: data.student_name,
+          damage_amount: data.damage_amount,
+          message: data.message,
+          created_at: data.created_at,
+        });
+        if (data.type !== 'ATTACK_LOG') {
+          refetchRaid();
+        }
+      } catch (err) {
+        console.error('웹소켓 메시지 파싱 실패', err);
+      }
+    };
+    ws.onclose = () => {
+      socketRef.current = null;
+    };
+    socketRef.current = ws;
+  }, [appendLog]);
+
+  const refetchRaid = useCallback(async () => {
+    try {
+      const response = await get('/api/v1/raids/my-raid');
+      
+      // 404는 레이드가 없는 정상적인 상태로 처리
+      if (response.status === 404) {
+        setRaidData(null);
+        setError(null);
+        setLoading(false);
+        return;
+      }
+      
+      const json = await response.json();
+      if (response.ok) {
+        // 백엔드 응답 데이터를 안전하게 매핑
+        const data = json.data || {};
+        setRaidData({
+          raid_id: data.raid_id ?? data.raidId ?? 0,
+          class_id: data.class_id ?? data.classId ?? 0,
+          class_name: data.class_name ?? data.className ?? '',
+          raid_name: data.raid_name ?? data.raidName ?? '',
+          template_display_name: data.template_display_name ?? data.templateDisplayName ?? '',
+          status: data.status ?? 'EXPIRED',
+          total_boss_hp: data.total_boss_hp ?? data.totalBossHp ?? 0,
+          current_boss_hp: data.current_boss_hp ?? data.currentBossHp ?? 0,
+          remaining_seconds: data.remaining_seconds ?? data.remainingSeconds ?? 0,
+          reward_coral: data.reward_coral ?? data.rewardCoral ?? 0,
+          reward_research_data: data.reward_research_data ?? data.rewardResearchData ?? 0,
+          special_reward_description: data.special_reward_description ?? data.specialRewardDescription,
+          my_total_contribution: data.my_total_contribution ?? data.myTotalContribution ?? 0,
+          remaining_research_data: data.remaining_research_data ?? data.remainingResearchData ?? 0,
+        });
+        setError(null);
+        const raidId = data.raid_id ?? data.raidId;
+        if (raidId) {
+          fetchLogs(raidId);
+          if (!socketRef.current) {
+            connectWebSocket(raidId);
+          }
+        }
+      } else {
+        setError(json?.message ?? '레이드 정보를 불러오지 못했습니다.');
+        setRaidData(null);
+      }
+    } catch (err) {
+      console.error('레이드 로딩 에러:', err);
+      // 네트워크 에러가 아닌 경우에만 에러 표시
+      setError(null);
+      setRaidData(null);
     } finally {
       setLoading(false);
     }
-  };
+  }, [connectWebSocket, fetchLogs]);
 
   useEffect(() => {
-    if (isAuthenticated && userType === 'student') {
-      fetchRaidData();
+    if (!isAuthenticated || userType !== 'student') {
+      return;
     }
-  }, [isAuthenticated, userType, access_token]);
+    refetchRaid();
+    return () => {
+      socketRef.current?.close();
+      socketRef.current = null;
+    };
+  }, [isAuthenticated, refetchRaid, userType]);
 
-  // 2. 에너지 주입 (공격)
-  const handleEnergyContribute = () => {
-    if (!raidInfo) return;
-    if (contributeAmount <= 0 || contributeAmount > raidInfo.my_research_data) {
+  const formatRemainingTime = useMemo(() => {
+    if (!raidData) return '정보 없음';
+    const seconds = raidData.remaining_seconds;
+    if (seconds <= 0) return '종료됨';
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    return `${hours}시간 ${minutes}분`;
+  }, [raidData]);
+
+  const handleOpenDiceModal = () => {
+    if (!raidData) return;
+    if (contributeAmount <= 0 || contributeAmount > raidData.remaining_research_data) {
       alert('올바른 기여량을 입력해주세요.');
       return;
     }
-
-    setIsDiceRolling(true);
+    setPendingContribution(contributeAmount);
     setDiceResult(null);
-
-    // 주사위 애니메이션 (2초)
-    setTimeout(async () => {
-      // 1. 주사위 결과 및 데미지 계산 (Client Side)
-      const dice = Math.floor(Math.random() * 6) + 1;
-      const bonusMultiplier = dice / 6; // 0.16 ~ 1.0
-      const bonus = Math.floor(contributeAmount * bonusMultiplier);
-      const totalDamage = contributeAmount + bonus;
-
-      setDiceResult(dice);
-      setIsDiceRolling(false);
-
-      setLastContributeResult({
-        base: contributeAmount,
-        bonus: bonus,
-        total: totalDamage,
-        diceResult: dice
-      });
-
-      try {
-        const response = await post(`/api/v1/raids/${raidInfo.raid_id}/attack`, {
-          research_data_amount: contributeAmount,
-          total_damage: totalDamage
-        });
-
-        const result = await response.json();
-
-        if (!response.ok) {
-          throw new Error(result.message || "공격 실패");
-        }
-
-        if (result.success) {
-          const data = result.data;
-          setRaidInfo(prev => prev ? ({
-            ...prev,
-            boss_hp: {
-              total: prev.boss_hp.total,
-              current: data.boss_hp.after,
-              percentage: data.boss_hp.percentage
-            },
-            my_research_data: data.my_stats.remaining_research_data
-          }) : null);
-
-          fetchRaidData();
-          alert(result.message);
-        }
-      } catch (err) {
-        alert((err as Error).message);
-      } finally {
-        setIsContributeOpen(false);
-        setContributeAmount(0);
-      }
-
-    }, 2000);
+    setIsContributeOpen(false);
+    setIsDiceModalOpen(true);
   };
 
-  //로그인 여부 확인
+  const rollDice = () => {
+    if (isRolling) return;
+    setIsRolling(true);
+    setDiceResult(null);
+    setTimeout(() => {
+      const value = Math.floor(Math.random() * 6) + 1;
+      setDiceResult(value);
+      setIsRolling(false);
+    }, 700);
+  };
+
+  const resetDiceModal = () => {
+    setIsDiceModalOpen(false);
+    setPendingContribution(null);
+    setDiceResult(null);
+    setIsRolling(false);
+  };
+
+  const handleConfirmContribution = async () => {
+    if (!raidData || pendingContribution == null || diceResult == null) return;
+    const diceBonus = diceResult; // 주사위 나온 눈금 만큼 추가 피해
+    const totalDamage = pendingContribution + diceBonus;
+    setIsSubmitting(true);
+    try {
+      const response = await post(`/api/v1/raids/${raidData.raid_id}/attack`, {
+        research_data_amount: pendingContribution,
+        total_damage: totalDamage,
+      });
+      const json = await response.json();
+      if (!response.ok) {
+        throw new Error(json?.message ?? '공격이 실패했습니다.');
+      }
+      const responseData = json.data || {};
+      setRaidData((prev) => prev ? {
+        ...prev,
+        current_boss_hp: responseData.boss_hp?.after ?? responseData.current_boss_hp ?? responseData.currentBossHp ?? prev.current_boss_hp,
+        status: responseData.raid_status ?? responseData.raidStatus ?? responseData.status ?? prev.status,
+        my_total_contribution: responseData.my_stats?.total_damage ?? responseData.my_total_contribution ?? responseData.myTotalContribution ?? prev.my_total_contribution,
+        remaining_research_data: responseData.my_stats?.remaining_research_data ?? responseData.remaining_research_data ?? responseData.remainingResearchData ?? prev.remaining_research_data
+      } : prev);
+      setContributeAmount(0);
+      resetDiceModal();
+    } catch (err: any) {
+      alert(err.message ?? '공격 요청 중 오류가 발생했습니다.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   if (!isAuthenticated || !user) {
-    return <div className="p-6">로그인 정보 확인 중...</div>;
+    return <div className="p-4">로그인 정보 로딩 중...</div>;
   }
 
   if (userType !== 'student') {
-    return <div className="p-6">접근 권한이 없습니다.</div>;
+    return <div className="p-6">학생 전용 페이지입니다.</div>;
   }
 
   if (loading) {
     return (
-      <div className="p-6 flex flex-col justify-center items-center min-h-screen">
-        <div className="window" style={{ width: "300px" }}>
-          <div className="title-bar">
-            <div className="title-bar-text">로딩 중</div>
-          </div>
-          <div className="window-body text-center p-4">
-            <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
-            <span>레이드 정보를 수신 중...</span>
-          </div>
+      <div className="p-6 bg-white">
+        <p>레이드 정보를 불러오는 중...</p>
+      </div>
+    );
+  }
+
+  if (!raidData) {
+    return (
+      <div className="p-6 space-y-4 bg-white">
+        <div className="text-center py-8">
+          <p className="text-lg text-gray-600 mb-4">진행 중인 레이드가 없습니다.</p>
+          <p className="text-sm text-gray-500">선생님이 레이드를 생성하면 여기에 표시됩니다.</p>
+          <Button 
+            onClick={refetchRaid} 
+            className="mt-4 bg-black text-white hover:bg-gray-800"
+          >
+            새로고침
+          </Button>
         </div>
       </div>
     );
   }
 
-  if (error || !raidInfo) {
+  if (error) {
     return (
-      <div className="p-6 flex flex-col justify-center items-center min-h-screen">
-        <div className="window" style={{ width: "300px" }}>
-          <div className="title-bar">
-            <div className="title-bar-text">알림</div>
-            <div className="title-bar-controls">
-              <button aria-label="Close" />
-            </div>
-          </div>
-          <div className="window-body text-center p-4">
-            <p>{error || "진행 중인 레이드가 없습니다."}</p>
-          </div>
-        </div>
+      <div className="p-6 space-y-4 bg-white">
+        <p className="text-red-600">{error}</p>
+        <Button onClick={refetchRaid} className="bg-black text-white">다시 시도</Button>
       </div>
     );
   }
+
+  const hpPercent = raidData.current_boss_hp != null && raidData.total_boss_hp != null && raidData.total_boss_hp > 0
+    ? (raidData.current_boss_hp / raidData.total_boss_hp) * 100
+    : 0;
 
   return (
-    <div className="p-4 space-y-6 max-w-screen-xl mx-auto">
-      {/* 1. 보스 & 레이드 정보 윈도우 */}
-      <div className="window" style={{ width: "100%" }}>
-        <div className="title-bar">
-          <div className="title-bar-text">&nbsp;{raidInfo.raid_name} ({raidInfo.difficulty})</div>
-          <div className="title-bar-controls">
-            <button aria-label="Minimize" />
-            <button aria-label="Maximize" />
-            <button aria-label="Close" />
+    <div className="p-4 space-y-4 bg-white" style={{ writingMode: 'horizontal-tb' }}>
+      <Card className="border-2 border-gray-300">
+        <div className="pb-4 px-6 pt-6" style={{ writingMode: 'horizontal-tb', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', width: '100%' }}>
+          <CardTitle className="text-black text-xl mb-3 whitespace-normal" style={{ writingMode: 'horizontal-tb', textAlign: 'center', width: '100%' }}>{raidData.raid_name}</CardTitle>
+          <div className="flex justify-center items-center gap-2 text-sm mb-2" style={{ writingMode: 'horizontal-tb' }}>
+            <span className="text-gray-600 whitespace-nowrap">남은 시간</span>
+            <span className="text-black font-medium whitespace-nowrap">{formatRemainingTime}</span>
+          </div>
+          <div className="text-xs text-gray-500 mt-2 whitespace-normal" style={{ writingMode: 'horizontal-tb', textAlign: 'center' }}>
+            상태: {raidData.status === 'ACTIVE' ? '진행중' : '종료됨'}
           </div>
         </div>
-        <div className="window-body">
+      </Card>
 
-          {/* 보스 이미지 영역 */}
-          <div className="sunken-panel" style={{
-            height: "180px", display: "flex", flexDirection: "column",
-            alignItems: "center", justifyContent: "center",
-            background: "#000", color: "#fff", marginBottom: "10px"
-          }}>
-            {/* 보스 이미지 Placeholder */}
-            <div style={{ width: "80px", height: "80px", background: "#808080", borderRadius: "50%", marginBottom: "10px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "40px" }}>
-              🐙
-            </div>
-            <h3 style={{ margin: 0 }}>{raidInfo.template_name}</h3>
-            <div style={{ fontSize: "12px", color: "#ccc" }}>남은 시간: {raidInfo.remaining_time}</div>
-          </div>
-
-          {/* 체력바 */}
-          <div style={{ marginBottom: "15px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", marginBottom: "4px" }}>
-              <span>HP Status</span>
-              <span>{raidInfo.boss_hp.current.toLocaleString()} / {raidInfo.boss_hp.total.toLocaleString()}</span>
-            </div>
-            <div className="progress-indicator segmented" style={{ width: "100%", height: "24px", border: "2px inset #dfdfdf" }}>
-              <div
-                className="progress-indicator-bar"
-                style={{
-                  width: `${raidInfo.boss_hp.percentage}%`,
-                  background: "linear-gradient(90deg, #d32f2f 0 16px, transparent 0 2px)",
-                  backgroundColor: "transparent"
-                }}
-              />
+      <Card className="border-2 border-gray-300">
+        <CardContent className="p-6" style={{ writingMode: 'horizontal-tb' }}>
+          <div className="w-full h-48 bg-black rounded mb-4 flex items-center justify-center">
+            <div className="text-center text-white" style={{ writingMode: 'horizontal-tb' }}>
+              <div className="w-20 h-20 bg-gray-400 rounded-full mx-auto mb-2" />
+              <p className="font-medium whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>{raidData.template_display_name}</p>
             </div>
           </div>
 
-          {/* 보상 정보 */}
-          <fieldset style={{ padding: "10px" }}>
-            <legend>Clear Reward</legend>
-            <div style={{ textAlign: "center", fontWeight: "bold" }}>
-              보상: 코랄 {raidInfo.reward_coral}개
+          <div className="space-y-2" style={{ writingMode: 'horizontal-tb' }}>
+            <div className="flex justify-between text-sm" style={{ writingMode: 'horizontal-tb' }}>
+              <span className="text-black font-medium whitespace-nowrap">보스 HP</span>
+              <span className="text-black whitespace-nowrap">
+                {(raidData.current_boss_hp ?? 0).toLocaleString()} / {(raidData.total_boss_hp ?? 0).toLocaleString()}
+              </span>
             </div>
-          </fieldset>
+            <Progress
+              value={hpPercent}
+              className="h-6 bg-gray-200"
+              style={{
+                '--progress-background': '#ef4444',
+                '--progress-foreground': '#dc2626'
+              } as React.CSSProperties}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-2 border-gray-300">
+        <div className="pb-4 px-6 pt-6" style={{ writingMode: 'horizontal-tb', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <CardTitle className="text-black text-center whitespace-normal" style={{ writingMode: 'horizontal-tb', display: 'block', width: '100%' }}>개인 기여</CardTitle>
         </div>
-      </div>
-
-      {/* 2. 내 행동 (기여) 윈도우 */}
-      <div className="window" style={{ width: "100%" }}>
-        <div className="title-bar">
-          <div className="title-bar-text">&nbsp;개인 기여</div>
-        </div>
-        <div className="window-body">
-
-          {/* 내 자원 현황 */}
-          <div className="status-bar" style={{ marginBottom: "15px" }}>
-            <p className="status-bar-field">보유 탐사데이터</p>
-            <p className="status-bar-field" style={{ textAlign: "right", fontWeight: "bold" }}>
-              {raidInfo.my_research_data}
-            </p>
+        <CardContent className="space-y-4" style={{ writingMode: 'horizontal-tb' }}>
+          <div className="grid grid-cols-2 gap-4" style={{ writingMode: 'horizontal-tb' }}>
+            <div className="text-center p-3 border border-gray-200 rounded" style={{ writingMode: 'horizontal-tb' }}>
+              <p className="text-sm text-gray-600 mb-2 whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>보유 탐사데이터</p>
+              <p className="text-xl font-medium text-black whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>{raidData.remaining_research_data}</p>
+            </div>
+            <div className="text-center p-3 border border-gray-200 rounded" style={{ writingMode: 'horizontal-tb' }}>
+              <p className="text-sm text-gray-600 mb-2 whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>나의 총 기여</p>
+              <p className="text-xl font-medium text-black whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>{raidData.my_total_contribution}</p>
+            </div>
           </div>
 
-          {/* 액션 버튼 */}
-          <button
-            onClick={() => setIsContributeOpen(true)}
-            disabled={raidInfo.my_research_data <= 0}
-            style={{ width: "100%", height: "40px", fontWeight: "bold", marginBottom: "10px" }}
-          >
-            ⚡ 에너지 주입
-          </button>
+          <div className="space-y-3" style={{ writingMode: 'horizontal-tb' }}>
+            <Button
+              onClick={() => setIsContributeOpen(true)}
+              className="w-full bg-black text-white hover:bg-gray-800 h-12"
+              disabled={raidData.remaining_research_data <= 0 || raidData.status !== 'ACTIVE'}
+              style={{ writingMode: 'horizontal-tb' }}
+            >
+              에너지 주입
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
-          {/* 마지막 결과 표시 */}
-          {lastContributeResult && (
-            <div className="sunken-panel" style={{ padding: "10px", background: "#fff" }}>
-              <div style={{ textAlign: "center", fontSize: "12px", color: "#666", marginBottom: "5px" }}>-- Last Attack Log --</div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div>
-                  <div>기본: {lastContributeResult.base}</div>
-                  <div>보너스: +{lastContributeResult.bonus}</div>
-                </div>
-                <div style={{ textAlign: "right" }}>
-                  <div style={{ fontWeight: "bold", fontSize: "16px", color: "blue" }}>DMG: {lastContributeResult.total}</div>
-                  <div style={{ fontSize: "11px", background: "#e0e0e0", padding: "2px 4px", display: "inline-block", marginTop: "2px" }}>
-                    Dice: {lastContributeResult.diceResult}
-                  </div>
-                </div>
-              </div>
+      <Card className="border-2 border-gray-300">
+        <div className="pb-4 px-6 pt-6" style={{ writingMode: 'horizontal-tb', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <CardTitle className="text-black text-center whitespace-normal" style={{ writingMode: 'horizontal-tb', display: 'block', width: '100%' }}>레이드 완료 보상</CardTitle>
+        </div>
+        <CardContent className="grid grid-cols-2 gap-4" style={{ writingMode: 'horizontal-tb' }}>
+          <div className="text-center p-3 border border-gray-200 rounded" style={{ writingMode: 'horizontal-tb' }}>
+            <p className="text-sm text-gray-600 mb-2 whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>코랄</p>
+            <p className="text-lg font-medium text-black whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>{raidData.reward_coral}</p>
+          </div>
+          <div className="text-center p-3 border border-gray-200 rounded" style={{ writingMode: 'horizontal-tb' }}>
+            <p className="text-sm text-gray-600 mb-2 whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>탐사데이터</p>
+            <p className="text-lg font-medium text-black whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>{raidData.reward_research_data}</p>
+          </div>
+          {raidData.special_reward_description && (
+            <div className="col-span-2 text-center p-3 border border-gray-200 rounded" style={{ writingMode: 'horizontal-tb' }}>
+              <p className="text-sm text-gray-600 mb-2 whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>특별 보상</p>
+              <p className="text-lg font-medium text-black whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>{raidData.special_reward_description}</p>
             </div>
           )}
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      {/* 3. 레이드 로그 윈도우 */}
-      <div className="window" style={{ width: "100%" }}>
-        <div className="title-bar">
-          <div className="title-bar-text">레이드 로그</div>
+      <Card className="border-2 border-gray-300">
+        <div className="pb-4 px-6 pt-6" style={{ writingMode: 'horizontal-tb', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <CardTitle className="text-black text-center whitespace-normal" style={{ writingMode: 'horizontal-tb', display: 'block', width: '100%' }}>레이드 로그</CardTitle>
         </div>
-        <div className="window-body">
-          <div className="sunken-panel" style={{ height: "200px", overflowY: "auto", background: "#fff", padding: "6px" }}>
-            {logs.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "20px", color: "#999" }}>기록된 레이드 로그가 없습니다.</div>
-            ) : (
-              <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-                {logs.map((log) => (
-                  <li key={log.log_id} style={{ marginBottom: "6px", borderBottom: "1px dotted #ccc", paddingBottom: "4px" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between" }}>
-                      <span>
-                        <strong style={{ color: "#000080" }}>{log.student_name}</strong>님이
-                        <span style={{ color: "#d32f2f", fontWeight: "bold", marginLeft: "4px" }}>{log.damage}</span> 데미지를 입혔습니다.
-                      </span>
-                      <span style={{ fontSize: "11px", color: "#666" }}>{log.time_ago}</span>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+        <CardContent style={{ writingMode: 'horizontal-tb' }}>
+          <div className="max-h-64 overflow-y-auto space-y-3 border-2 border-gray-300 rounded-lg p-3" style={{ writingMode: 'horizontal-tb' }}>
+            {logs.length === 0 && (
+              <p className="text-sm text-gray-500 text-center whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>아직 활동 로그가 없습니다.</p>
             )}
-          </div>
-        </div>
-      </div>
-
-      {/* [모달] 에너지 주입 */}
-      {isContributeOpen && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="window" style={{ width: '90%', maxWidth: '350px' }}>
-            <div className="title-bar">
-              <div className="title-bar-text">에너지 주입</div>
-              <div className="title-bar-controls">
-                <button aria-label="Close" onClick={() => setIsContributeOpen(false)} />
-              </div>
-            </div>
-            <div className="window-body">
-
-              <div className="field-row-stacked" style={{ marginBottom: "15px" }}>
-                <label>주입할 데이터 양 (보유: {raidInfo.my_research_data})</label>
-                <input
-                  type="number"
-                  value={contributeAmount}
-                  onChange={(e) => setContributeAmount(Number(e.target.value))}
-                  max={raidInfo.my_research_data}
-                  min={1}
-                  style={{ width: "100%" }}
-                />
-              </div>
-
-              <fieldset style={{ marginBottom: "15px" }}>
-                <legend>Dice Bonus Chance</legend>
-                <p style={{ margin: "5px 0", fontSize: "12px" }}>주사위를 굴려 추가 데미지를 입힙니다!</p>
-
-                <div style={{ display: "flex", justifyContent: "center", padding: "10px" }}>
-                  {isDiceRolling ? (
-                    <div className="window" style={{ width: "60px", height: "60px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <Loader2 className="animate-spin" />
-                    </div>
-                  ) : diceResult ? (
-                    <div className="window" style={{ width: "60px", height: "60px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "24px", fontWeight: "bold" }}>
-                      {diceResult}
-                    </div>
-                  ) : (
-                    <div className="window" style={{ width: "60px", height: "60px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "24px" }}>
-                      🎲
-                    </div>
-                  )}
-                </div>
-              </fieldset>
-
-              <div style={{ display: "flex", justifyContent: "center", gap: "10px" }}>
-                <button
-                  onClick={handleEnergyContribute}
-                  disabled={contributeAmount <= 0 || contributeAmount > raidInfo.my_research_data || isDiceRolling}
-                  style={{ minWidth: "80px", fontWeight: "bold" }}
+            {logs.map((log) => {
+              let timeString = '알 수 없음';
+              try {
+                if (log.created_at) {
+                  const date = new Date(log.created_at);
+                  if (!isNaN(date.getTime())) {
+                    timeString = date.toLocaleTimeString('ko-KR', { 
+                      hour: '2-digit', 
+                      minute: '2-digit',
+                      hour12: false
+                    });
+                  }
+                }
+              } catch (err) {
+                console.error('날짜 파싱 실패:', log.created_at, err);
+              }
+              
+              return (
+                <div
+                  key={`${log.created_at}-${log.student_name ?? log.type}-${log.log_id ?? Math.random()}`}
+                  className="bg-gray-50 border-l-4 border-gray-400 p-3 rounded-r"
+                  style={{ writingMode: 'horizontal-tb' }}
                 >
-                  {isDiceRolling ? "굴리는 중..." : "확인"}
-                </button>
-                <button onClick={() => setIsContributeOpen(false)} style={{ minWidth: "80px" }}>
-                  취소
-                </button>
-              </div>
+                  <div className="flex justify-between items-start gap-3" style={{ writingMode: 'horizontal-tb' }}>
+                    <div className="flex-1 text-sm text-black" style={{ writingMode: 'horizontal-tb' }}>
+                      <span className="font-medium whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>
+                        {log.type === 'ATTACK_LOG'
+                          ? `${log.student_name ?? '알 수 없음'}님이 ${log.damage_amount ?? 0} 데미지를 입혔습니다.`
+                          : log.message ?? '시스템 알림'}
+                      </span>
+                    </div>
+                    <span className="text-xs text-gray-600 bg-gray-200 px-2 py-1 rounded whitespace-nowrap flex-shrink-0" style={{ writingMode: 'horizontal-tb' }}>
+                      {timeString}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
 
+      <Dialog open={isContributeOpen} onOpenChange={setIsContributeOpen}>
+        <DialogContent className="bg-white border-2 border-gray-300" style={{ writingMode: 'horizontal-tb' }}>
+          <DialogHeader style={{ writingMode: 'horizontal-tb' }}>
+            <DialogTitle className="text-black whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>에너지 주입</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4" style={{ writingMode: 'horizontal-tb' }}>
+            <div style={{ writingMode: 'horizontal-tb' }}>
+              <p className="text-sm text-gray-600 mb-2 whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>
+                보유 탐사데이터: {raidData.remaining_research_data}
+              </p>
+              <input
+                type="number"
+                value={contributeAmount}
+                onChange={(e) => setContributeAmount(Number(e.target.value))}
+                max={raidData.remaining_research_data}
+                min={1}
+                className="w-full p-3 border border-gray-300 rounded bg-white text-black"
+                placeholder="기여할 양을 입력하세요"
+                style={{ writingMode: 'horizontal-tb' }}
+              />
+            </div>
+
+            <div className="flex space-x-2" style={{ writingMode: 'horizontal-tb' }}>
+              <Button
+                onClick={handleOpenDiceModal}
+                className="flex-1 bg-black text-white"
+                disabled={
+                  contributeAmount <= 0 ||
+                  contributeAmount > raidData.remaining_research_data ||
+                  raidData.status !== 'ACTIVE'
+                }
+                style={{ writingMode: 'horizontal-tb' }}
+              >
+                기여하기
+              </Button>
+              <Button
+                onClick={() => setIsContributeOpen(false)}
+                className="flex-1 bg-white text-black border border-gray-300"
+                style={{ writingMode: 'horizontal-tb' }}
+              >
+                취소
+              </Button>
             </div>
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isDiceModalOpen} onOpenChange={(open) => {
+        if (!open) {
+          resetDiceModal();
+        }
+      }}>
+        <DialogContent className="bg-white border-2 border-gray-300" style={{ writingMode: 'horizontal-tb' }}>
+          <DialogHeader style={{ writingMode: 'horizontal-tb' }}>
+            <DialogTitle className="text-black whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>주사위 보너스</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 text-center" style={{ writingMode: 'horizontal-tb' }}>
+            <p className="text-sm text-gray-600 whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>
+              투입 에너지: <span className="font-semibold text-black">{pendingContribution ?? 0}</span>
+            </p>
+            <div className="w-24 h-24 mx-auto border-2 border-gray-300 rounded-lg flex items-center justify-center text-3xl font-bold text-black bg-gray-100" style={{ writingMode: 'horizontal-tb' }}>
+              {diceResult ?? (isRolling ? '...' : '?')}
+            </div>
+            <p className="text-sm text-gray-600 whitespace-normal" style={{ writingMode: 'horizontal-tb' }}>
+              주사위 눈금만큼 추가 피해가 적용됩니다.
+            </p>
+            <Button
+              onClick={rollDice}
+              className="w-full bg-black text-white"
+              disabled={isRolling || diceResult !== null}
+              style={{ writingMode: 'horizontal-tb' }}
+            >
+              {isRolling ? '굴리는 중...' : diceResult ? '주사위 완료' : '주사위 굴리기'}
+            </Button>
+            <div className="flex space-x-2" style={{ writingMode: 'horizontal-tb' }}>
+              <Button
+                onClick={handleConfirmContribution}
+                className="flex-1 bg-black text-white"
+                disabled={diceResult === null || isSubmitting}
+                style={{ writingMode: 'horizontal-tb' }}
+              >
+                {isSubmitting ? '기여 중...' : `총 피해 ${pendingContribution !== null && diceResult !== null
+                    ? pendingContribution + diceResult
+                    : '-'
+                  } 적용`}
+              </Button>
+              <Button
+                onClick={resetDiceModal}
+                className="flex-1 bg-white text-black border border-gray-300"
+                disabled={isSubmitting}
+                style={{ writingMode: 'horizontal-tb' }}
+              >
+                취소
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
+

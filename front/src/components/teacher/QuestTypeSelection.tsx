@@ -30,21 +30,21 @@ export function QuestTypeSelection() {
         </div>
 
         {/* Main Content */}
-        <div className="p-6 max-w-6xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <div className="p-6 max-w-4xl">
+          <div className="space-y-6">
             {/* 개인 퀘스트 */}
-            <Card className="card border-2 border-gray-300 hover:border-gray-500 transition-colors h-full flex flex-col">
+            <Card className="card border-2 border-gray-300 hover:border-gray-500 transition-colors">
               <CardHeader className="card-header p-6 pb-4">
                 <CardTitle className="card-title d-flex align-items-center gap-2 text-black text-xl whitespace-nowrap" style={{ writingMode: 'horizontal-tb' }}>
                   <User className="w-6 h-6" />
                   개인 퀘스트
                 </CardTitle>
               </CardHeader>
-              <CardContent className="card-body p-6 pt-4 space-y-6 flex-1 flex flex-col">
+              <CardContent className="card-body p-6 pt-4 space-y-6">
                 <p className="text-gray-600 text-base leading-relaxed">
                   특정 학생에게만 할당되는 개별 퀘스트입니다.
                 </p>
-                <ul className="text-sm text-gray-600 space-y-2.5 flex-1">
+                <ul className="text-sm text-gray-600 space-y-2.5">
                   <li className="leading-relaxed">• 개별 학생 선택 가능</li>
                   <li className="leading-relaxed">• 맞춤형 퀘스트 내용</li>
                   <li className="leading-relaxed">• 개별 진행률 관리</li>
@@ -63,18 +63,18 @@ export function QuestTypeSelection() {
             </Card>
 
             {/* 단체 퀘스트 */}
-            <Card className="card border-2 border-gray-300 hover:border-gray-500 transition-colors h-full flex flex-col">
+            <Card className="card border-2 border-gray-300 hover:border-gray-500 transition-colors">
               <CardHeader className="card-header p-6 pb-4">
                 <CardTitle className="card-title d-flex align-items-center gap-2 text-black text-xl whitespace-nowrap" style={{ writingMode: 'horizontal-tb' }}>
                   <Users className="w-6 h-6" />
                   단체 퀘스트
                 </CardTitle>
               </CardHeader>
-              <CardContent className="card-body p-6 pt-4 space-y-6 flex-1 flex flex-col">
+              <CardContent className="card-body p-6 pt-4 space-y-6">
                 <p className="text-gray-600 text-base leading-relaxed">
                   반 전체 학생에게 할당되는 공통 퀘스트입니다.
                 </p>
-                <ul className="text-sm text-gray-600 space-y-2.5 flex-1">
+                <ul className="text-sm text-gray-600 space-y-2.5">
                   <li className="leading-relaxed">• 반 전체 자동 할당</li>
                   <li className="leading-relaxed">• 템플릿 기반 생성</li>
                   <li className="leading-relaxed">• 일괄 달성률 관리</li>
@@ -94,11 +94,11 @@ export function QuestTypeSelection() {
           </div>
 
           {/* 안내사항 */}
-          <div className="mt-6">
+          <div className="mt-4">
             <Card className="card bg-gray-50 border-2 border-gray-300">
               <CardContent className="card-body p-4">
                 <h3 className="font-semibold text-black mb-2">퀘스트 유형 안내</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
                   <div>
                     <h4 className="font-medium mb-1 text-black">개인 퀘스트</h4>
                     <p className="text-sm text-gray-700">특정 학생의 학습 상황에 맞춘 맞춤형 퀘스트</p>

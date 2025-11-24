@@ -78,11 +78,11 @@ export function StudentProfile() {
   
   //로그인 여부 확인
   if (!isAuthenticated || !user) {
-    return <div className="p-6">로그인 정보 확인 중...</div>;
+    return <div className="p-6">로딩중...</div>;
   }
 
   if (userType !== 'student') {
-    return <div className="p-6">접근 권한이 없습니다.</div>;
+    return <div className="p-6">학생 전용 대시보드입니다.</div>;
   }
 
   const currentUser = user as StudentUser;

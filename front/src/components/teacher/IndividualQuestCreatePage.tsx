@@ -467,10 +467,10 @@ export function IndividualQuestCreatePage() {
                     value={questData.difficulty.toString()}
                     onValueChange={handleDifficultyChange}
                   >
-                    <SelectTrigger className="w-[300px] h-11 border-gray-300 focus:border-blue-500 focus:ring-blue-500 bg-white">
+                    <SelectTrigger className="w-[300px] h-11 border-gray-300 focus:border-blue-500 focus:ring-blue-500">
                       <SelectValue placeholder="난이도 선택" />
                     </SelectTrigger>
-                    <SelectContent className="bg-white">
+                    <SelectContent>
                       <SelectItem value="1">1점 (EASY/개념 확인)</SelectItem>
                       <SelectItem value="2">2점 (BASIC/유형 적용)</SelectItem>
                       <SelectItem value="3">3점 (MEDIUM/복합 응용)</SelectItem>
@@ -618,7 +618,7 @@ export function IndividualQuestCreatePage() {
               </div>
               
               {!aiModeEnabled && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-gray-100">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-gray-100">
                   <div className="space-y-2">
                     <Label htmlFor="reward_coral_default" className="text-sm font-semibold text-gray-700">기본 코랄 보상</Label>
                     <Input
@@ -627,7 +627,7 @@ export function IndividualQuestCreatePage() {
                       value={questData.reward_coral_default}
                       onChange={handleQuestDataChange}
                       placeholder="예: 50"
-                      className="h-11 px-4 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                      className="h-11 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                     />
                   </div>
                   <div className="space-y-2">
@@ -638,7 +638,7 @@ export function IndividualQuestCreatePage() {
                       value={questData.reward_research_data_default}
                       onChange={handleQuestDataChange}
                       placeholder="예: 30"
-                      className="h-11 px-4 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                      className="h-11 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                     />
                   </div>
                 </div>

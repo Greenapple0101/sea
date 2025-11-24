@@ -25,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -83,32 +84,53 @@ public class RaidService {
                 ? contribution.getDamage()
                 : 0;
 
-        // 남은 시간 계산
-        Long remainingSeconds = 0L;
-        if (activeRaid.getEndDate() != null) {
-            LocalDateTime now = LocalDateTime.now();
-            if (now.isBefore(activeRaid.getEndDate())) {
-                remainingSeconds = Duration.between(now, activeRaid.getEndDate()).getSeconds();
-            }
-        }
-
         // 학생의 남은 탐사데이터
         Integer remainingResearchData = student.getResearchData() != null ? student.getResearchData() : 0;
+
+        // HP 정보 생성
+        long totalBossHp = activeRaid.getTotalBossHp() != null ? activeRaid.getTotalBossHp() : 0L;
+        long currentBossHp = activeRaid.getCurrentBossHp() != null ? activeRaid.getCurrentBossHp() : totalBossHp;
+        int bossHpPercentage = (totalBossHp > 0)
+                ? (int) Math.max(0, Math.min(100, Math.round((double) currentBossHp * 100 / totalBossHp)))
+                : 0;
+
+        StudentRaidResponse.BossHp bossHp = StudentRaidResponse.BossHp.builder()
+                .total(totalBossHp)
+                .current(currentBossHp)
+                .percentage(bossHpPercentage)
+                .build();
+
+        // 참가 인원 수
+        int participants = contributionRepository.countByRaid(activeRaid);
+
+        // 남은 시간 출력 형태
+        String remainingTimeText = formatRemainingTime(activeRaid.getEndDate());
+        String endDateText = activeRaid.getEndDate() != null
+                ? activeRaid.getEndDate().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+                : null;
+
+        StudentRaidResponse.MyContribution myContribution = StudentRaidResponse.MyContribution.builder()
+                .totalDamage(myTotalContribution)
+                .lastAttackAt(null) // 추후 로그 테이블 연동 시 갱신
+                .build();
 
         return StudentRaidResponse.builder()
                 .raidId(activeRaid.getRaidId())
                 .classId(activeRaid.getClasses().getClassId())
                 .className(activeRaid.getClasses().getClassName())
                 .raidName(activeRaid.getRaidName())
-                .templateDisplayName(activeRaid.getBossType() != null ? activeRaid.getBossType().getDisplayName() : "")
-                .status(activeRaid.getStatus() != null ? activeRaid.getStatus().name() : "")
-                .totalBossHp(activeRaid.getTotalBossHp())
-                .currentBossHp(activeRaid.getCurrentBossHp())
-                .remainingSeconds(remainingSeconds)
+                .template(activeRaid.getBossType() != null ? activeRaid.getBossType().name() : null)
+                .templateName(activeRaid.getBossType() != null ? activeRaid.getBossType().getDisplayName() : null)
+                .difficulty(activeRaid.getDifficulty() != null ? activeRaid.getDifficulty().name() : null)
+                .status(activeRaid.getStatus() != null ? activeRaid.getStatus().name() : null)
+                .bossHp(bossHp)
+                .endDate(endDateText)
+                .remainingTime(remainingTimeText)
                 .rewardCoral(activeRaid.getRewardCoral())
+                .participants(participants)
                 .specialRewardDescription(activeRaid.getSpecialRewardDescription())
-                .myTotalContribution(myTotalContribution)
-                .remainingResearchData(remainingResearchData)
+                .myContribution(myContribution)
+                .myResearchData(remainingResearchData)
                 .build();
     }
 
@@ -594,6 +616,29 @@ public class RaidService {
                 .raids(raidSummaries)
                 .totalCount(raidSummaries.size())
                 .build();
+    }
+
+    private String formatRemainingTime(LocalDateTime endDate) {
+        if (endDate == null) {
+            return "";
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        if (!now.isBefore(endDate)) {
+            return "00:00:00";
+        }
+
+        Duration duration = Duration.between(now, endDate);
+        long days = duration.toDays();
+        duration = duration.minusDays(days);
+        long hours = duration.toHours();
+        long minutes = duration.toMinutesPart();
+        long seconds = duration.toSecondsPart();
+
+        if (days > 0) {
+            return String.format("%d일 %02d:%02d:%02d", days, hours, minutes, seconds);
+        }
+        return String.format("%02d:%02d:%02d", hours, minutes, seconds);
     }
 
     /**

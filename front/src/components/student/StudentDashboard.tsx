@@ -1,441 +1,311 @@
-import { useState, useEffect } from 'react';
-import { QuestDetailPage } from './QuestDetailPage';
+import { Card, CardContent } from '../ui/card';
+import { Progress } from '../ui/progress';
+import { useEffect, useState } from 'react';
 import { useAuth, StudentUser } from '../../contexts/AppContext';
 import { get } from '../../utils/api';
-import { Loader2 } from 'lucide-react';
 
-// --- API Interfaces ---
-
-interface StudentInfo {
-  student_id: number;
-  username: string;
-  real_name: string;
-  nickname: string;
-  class_name: string;
-  coral: number;
-  research_data: number;
-}
-
-interface NotificationItem {
-  id: number;
-  type: string;
-  title: string;
-  content: string;
-  created_at: string;
-  time_ago: string;
-}
-
-interface Notifications {
-  announcements: NotificationItem[];
-  events: NotificationItem[];
-}
-
-interface ActiveRaid {
-  raid_id: number;
+interface StudentRaidSummary {
   raid_name: string;
-  template: string;
-  boss_hp: {
-    current: number;
-    total: number;
-    percentage: number;
-  };
-  remaining_time: string;
-  participants: number;
-}
-
-interface GroupQuest {
-  quest_id: number;
-  title: string;
-  description: string;
-  completed_count: number;
-  total_count: number;
-  completion_rate: number;
-  my_status: string;
-  incomplete_students: string[];
-}
-
-interface RecentActivity {
-  log_id: number;
-  type: string;
-  icon: string;
-  title: string;
-  description: string;
-  reward: string;
-  created_at: string;
-  time_ago: string;
-}
-
-interface DashboardData {
-  student_info: StudentInfo;
-  notifications: Notifications;
-  active_raid: ActiveRaid | null;
-  group_quests: GroupQuest[];
-  recent_activities: RecentActivity[];
+  template_display_name: string;
+  current_boss_hp: number;
+  total_boss_hp: number;
+  remaining_seconds: number;
+  status: 'ACTIVE' | 'COMPLETED' | 'EXPIRED' | 'TERMINATED';
 }
 
 export function StudentDashboard() {
-  const { user, isAuthenticated, userType, access_token } = useAuth();
+  const { user, isAuthenticated, userType, updateUser } = useAuth();
 
-  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [raidSummary, setRaidSummary] = useState<StudentRaidSummary | null>(null);
+  const [raidLoading, setRaidLoading] = useState(true);
+  const [raidError, setRaidError] = useState<string | null>(null);
+  const [events, setEvents] = useState<Array<{ id: number; type: string; message: string; time: string }>>([]);
+  const [groupQuests, setGroupQuests] = useState<Array<{ id: string; title: string; reward: string; completed: number; total: number; incomplete: string[] }>>([]);
+  const [activityLogs, setActivityLogs] = useState<Array<{ id: number; title: string; description: string; reward: string; time: string }>>([]);
+  const [eventsLoading, setEventsLoading] = useState(false);
+  const [groupQuestsLoading, setGroupQuestsLoading] = useState(false);
+  const [activityLogsLoading, setActivityLogsLoading] = useState(false);
 
-  const [selectedQuest, setSelectedQuest] = useState<{ id: number; title: string } | null>(null);
+  // 사용자 정보 새로고침
+  const refreshUserInfo = async () => {
+    try {
+      const response = await get('/api/v1/auth/student/me');
+      const json = await response.json();
+      if (response.ok && json.data) {
+        updateUser({
+          coral: json.data.coral ?? 0,
+          research_data: json.data.research_data ?? 0,
+        });
+      }
+    } catch (err) {
+      console.error('사용자 정보 새로고침 실패:', err);
+    }
+  };
 
   useEffect(() => {
-    if (!isAuthenticated || !user || !access_token) return;
+    if (!isAuthenticated || userType !== 'student') {
+      setRaidLoading(false);
+      return;
+    }
 
-    const fetchDashboardData = async () => {
-      setIsLoading(true);
-      setError(null);
+    // 페이지 로드 시 사용자 정보 새로고침
+    refreshUserInfo();
+
+    const fetchRaid = async () => {
       try {
-        // 백엔드에 통합 대시보드 API가 없으므로 여러 API를 조합
-        const currentUser = user as StudentUser;
-        
-        // 기본 학생 정보는 이미 user context에 있음
-        const student_info: StudentInfo = {
-          student_id: parseInt(currentUser.id),
-          username: currentUser.username,
-          real_name: currentUser.real_name,
-          nickname: currentUser.nickname,
-          class_name: '', // TODO: user context에서 가져오기
-          coral: currentUser.coral,
-          research_data: currentUser.research_data
-        };
-
-        // 여러 API를 병렬로 호출
-        const [raidRes, noticesRes, groupQuestsRes, activityLogsRes] = await Promise.all([
-          get('/api/v1/raids/my-raid').catch(() => null),
-          get('/api/v1/notices/events').catch(() => null),
-          get('/api/v1/quests/group/my-class').catch(() => null),
-          get('/api/v1/activity-logs').catch(() => null)
-        ]);
-
-        // 레이드 정보 처리
-        let active_raid: ActiveRaid | null = null;
-        if (raidRes && raidRes.ok) {
-          const raidData = await raidRes.json();
-          if (raidData.data) {
-            const raid = raidData.data;
-            active_raid = {
-              raid_id: raid.raid_id,
-              raid_name: raid.raid_name || '레이드',
-              template: raid.boss_type || 'BOSS',
-              boss_hp: {
-                current: raid.current_boss_hp || 0,
-                total: raid.total_boss_hp || 0,
-                percentage: raid.total_boss_hp > 0 
-                  ? Math.round((raid.current_boss_hp / raid.total_boss_hp) * 100) 
-                  : 0
-              },
-              remaining_time: raid.remaining_time || '계산 중...',
-              participants: raid.participants || 0
-            };
-          }
+        const response = await get('/api/v1/raids/my-raid');
+        const json = await response.json();
+        if (response.ok) {
+          setRaidSummary({
+            raid_name: json.data.raid_name,
+            template_display_name: json.data.template_display_name,
+            current_boss_hp: json.data.current_boss_hp,
+            total_boss_hp: json.data.total_boss_hp,
+            remaining_seconds: json.data.remaining_seconds,
+            status: json.data.status,
+          });
+        } else {
+          setRaidError(json?.message ?? '레이드를 불러올 수 없습니다.');
         }
-
-        // 공지 및 이벤트 처리
-        const notifications: Notifications = {
-          announcements: [],
-          events: []
-        };
-        if (noticesRes && noticesRes.ok) {
-          const noticesData = await noticesRes.json();
-          if (noticesData.data) {
-            notifications.events = noticesData.data.map((n: any) => ({
-              id: n.notice_id,
-              type: n.notice_type,
-              title: n.title,
-              content: n.content || '',
-              created_at: n.created_at,
-              time_ago: n.time_ago || ''
-            }));
-          }
-        }
-
-        // 단체 퀘스트 처리
-        const group_quests: GroupQuest[] = [];
-        if (groupQuestsRes && groupQuestsRes.ok) {
-          const questsData = await groupQuestsRes.json();
-          if (questsData.data) {
-            group_quests.push(...questsData.data.map((q: any) => ({
-              quest_id: q.group_quest_id,
-              title: q.title,
-              description: q.description || '',
-              completed_count: q.completed_count || 0,
-              total_count: q.total_count || 0,
-              completion_rate: q.total_count > 0 
-                ? Math.round((q.completed_count / q.total_count) * 100) 
-                : 0,
-              my_status: q.my_status || '미완료',
-              incomplete_students: q.incomplete_students || []
-            })));
-          }
-        }
-
-        // 활동 로그 처리
-        const recent_activities: RecentActivity[] = [];
-        if (activityLogsRes && activityLogsRes.ok) {
-          const logsData = await activityLogsRes.json();
-          if (logsData.data) {
-            recent_activities.push(...logsData.data.map((log: any) => ({
-              log_id: log.log_id,
-              type: log.log_type,
-              icon: log.icon || '📜',
-              title: log.title || '',
-              description: log.description || '',
-              reward: log.reward || '',
-              created_at: log.created_at,
-              time_ago: log.time_ago || ''
-            })));
-          }
-        }
-
-        // 대시보드 데이터 조합
-        const dashboardData: DashboardData = {
-          student_info,
-          notifications,
-          active_raid,
-          group_quests,
-          recent_activities
-        };
-
-        setDashboardData(dashboardData);
       } catch (err) {
-        setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.');
+        setRaidError('레이드를 불러올 수 없습니다.');
       } finally {
-        setIsLoading(false);
+        setRaidLoading(false);
       }
     };
 
-    fetchDashboardData();
-  }, [isAuthenticated, user, access_token]);
+    // TODO: 백엔드 API 연동 준비
+    const fetchEvents = async () => {
+      setEventsLoading(true);
+      try {
+        // const response = await get('/api/v1/notices/events');
+        // const json = await response.json();
+        // if (response.ok) {
+        //   setEvents(json.data ?? []);
+        // }
+        setEvents([]); // 임시로 빈 배열
+      } catch (err) {
+        console.error('이벤트 & 공지 조회 실패', err);
+        setEvents([]);
+      } finally {
+        setEventsLoading(false);
+      }
+    };
+
+    const fetchGroupQuests = async () => {
+      setGroupQuestsLoading(true);
+      try {
+        // const response = await get('/api/v1/quests/group/my-class');
+        // const json = await response.json();
+        // if (response.ok) {
+        //   setGroupQuests(json.data ?? []);
+        // }
+        setGroupQuests([]); // 임시로 빈 배열
+      } catch (err) {
+        console.error('단체 퀘스트 조회 실패', err);
+        setGroupQuests([]);
+      } finally {
+        setGroupQuestsLoading(false);
+      }
+    };
+
+    const fetchActivityLogs = async () => {
+      setActivityLogsLoading(true);
+      try {
+        // const response = await get('/api/v1/activity-logs');
+        // const json = await response.json();
+        // if (response.ok) {
+        //   setActivityLogs(json.data ?? []);
+        // }
+        setActivityLogs([]); // 임시로 빈 배열
+      } catch (err) {
+        console.error('활동 로그 조회 실패', err);
+        setActivityLogs([]);
+      } finally {
+        setActivityLogsLoading(false);
+      }
+    };
+
+    fetchRaid();
+    fetchEvents();
+    fetchGroupQuests();
+    fetchActivityLogs();
+
+    // 30초마다 사용자 정보 새로고침
+    const intervalId = setInterval(() => {
+      refreshUserInfo();
+    }, 30000);
+
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [isAuthenticated, userType]);
 
   //로그인 여부 확인
   if (!isAuthenticated || !user) {
-    return <div className="p-6">로그인 정보 확인 중...</div>;
+    return <div className="p-6">로딩중...</div>;
   }
 
   if (userType !== 'student') {
-    return <div className="p-6">접근 권한이 없습니다.</div>;
+    return <div className="p-6">학생 전용 대시보드입니다.</div>;
   }
 
   const currentUser = user as StudentUser;
 
-  // 퀘스트 상세 페이지가 선택된 경우
-  if (selectedQuest) {
-    return (
-      <QuestDetailPage
-        quest={selectedQuest}
-        onBack={() => setSelectedQuest(null)}
-      />
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <div className="p-6 flex justify-center items-center min-h-screen">
-        <Loader2 className="w-8 h-8 animate-spin" />
-      </div>
-    );
-  }
-
-  if (error || !dashboardData) {
-    return (
-      <div className="p-6 text-center text-red-600">
-        <p>오류: {error || '데이터를 불러올 수 없습니다.'}</p>
-      </div>
-    );
-  }
-
-  const { student_info, notifications, active_raid, group_quests, recent_activities } = dashboardData;
-
-  const allNotifications = [
-    ...notifications.announcements.map(n => ({ ...n, category: '공지' })),
-    ...notifications.events.map(e => ({ ...e, category: '이벤트' }))
-  ];
-
   return (
-    <div className="p-4 space-y-6 max-w-screen-xl mx-auto">
-      {/* 1. 이벤트 & 공지 윈도우 */}
-      <div className="window" style={{ width: "100%" }}>
-        <div className="title-bar">
-          <div className="title-bar-text">&nbsp;이벤트 & 공지</div>
-          <div className="title-bar-controls">
-            <button aria-label="Minimize" />
-            <button aria-label="Maximize" />
-            <button aria-label="Close" />
-          </div>
-        </div>
-        <div className="window-body">
-          <div className="sunken-panel" style={{ padding: "10px", background: "var(--color-white)", maxHeight: "150px", overflowY: "auto" }}>
-            {allNotifications.length > 0 ? (
-              <ul className="tree-view" style={{ border: "none", boxShadow: "none", margin: 0, padding: 0 }}>
-                {allNotifications.map((item) => (
-                  <li key={`${item.category}-${item.id}`} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", borderBottom: "1px dotted #888" }}>
-                    <span style={{ display: "flex", alignItems: "center", gap: "8px", overflow: "hidden" }}>
-                      <span style={{ fontWeight: "bold", color: item.category === '공지' ? "blue" : "red", whiteSpace: "nowrap" }}>
-                        [{item.category}]
-                      </span>
-                      <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.title}</span>
+    <div className="p-6 space-y-6 bg-gray-50 max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* 이벤트 & 공지 (맨 위) */}
+      <Card className="border-2 border-gray-300">
+        <CardContent className="p-4 space-y-3">
+          <h3 className="font-medium text-black">이벤트 & 공지</h3>
+          {eventsLoading ? (
+            <p className="text-sm text-gray-500">로딩 중...</p>
+          ) : events.length === 0 ? (
+            <p className="text-sm text-gray-500">이벤트 및 공지가 없습니다.</p>
+          ) : (
+            <div className="space-y-2">
+              {events.map((event) => (
+                <div key={event.id} className="flex items-center justify-between border border-gray-200 rounded-lg p-3 bg-gray-50">
+                  <div className="flex items-center gap-3">
+                    <span className={`text-xs font-semibold px-2 py-1 rounded-full border ${event.type === '이벤트' ? 'bg-black text-white border-black' : 'bg-white text-black border-gray-300'}`}>
+                      {event.type}
                     </span>
-                    <span style={{ fontSize: "12px", color: "#666", whiteSpace: "nowrap", marginLeft: "8px" }}>{item.time_ago}</span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p style={{ textAlign: "center", color: "#666" }}>새로운 소식이 없습니다.</p>
-            )}
-          </div>
-        </div>
-      </div>
+                    <span className="text-sm text-black">{event.message}</span>
+                  </div>
+                  <span className="text-xs text-gray-500">{event.time}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
-      {/* 2. 레이드 현황 윈도우 */}
-      <div className="window" style={{ width: "100%" }}>
-        <div className="title-bar">
-          <div className="title-bar-text">&nbsp;현재 레이드: {active_raid ? active_raid.raid_name : '진행 중 아님'}</div>
-          <div className="title-bar-controls">
-            <button aria-label="Help" />
-          </div>
-        </div>
-        <div className="window-body">
-          {active_raid ? (
+      {/* 현재 레이드 보스 HP 요약 */}
+      <Card className="border-2 border-gray-300">
+        <CardContent className="p-6">
+          {raidLoading ? (
+            <p>레이드 정보를 불러오는 중...</p>
+          ) : raidError ? (
+            <p className="text-sm text-gray-500">{raidError}</p>
+          ) : raidSummary ? (
             <>
-              <div style={{ textAlign: "center", marginBottom: "15px" }}>
-                <h4 style={{ margin: "0 0 8px 0", fontSize: "16px" }}>BOSS: {active_raid.template}</h4>
-
-                {/* HP 정보 & 프로그레스 바 (98.css style) */}
-                <div className="field-row" style={{ justifyContent: "space-between", marginBottom: "4px" }}>
-                  <span>HP Status</span>
-                  <span>{active_raid.boss_hp.current.toLocaleString()} / {active_raid.boss_hp.total.toLocaleString()}</span>
-                </div>
-                <div className="progress-indicator segmented" style={{ width: "100%", height: "24px" }}>
-                  <div
-                    className="progress-indicator-bar"
-                    style={{ width: `${active_raid.boss_hp.percentage}%` }}
-                  />
-                </div>
+              <div className="text-center mb-6">
+                <h3 className="text-xl font-bold text-black mb-2">{raidSummary.raid_name}</h3>
+                <p className="text-lg text-gray-600">{raidSummary.template_display_name}</p>
               </div>
-
-              {/* 레이드 상세 정보 (Grid) */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-                <div className="status-bar">
-                  <p className="status-bar-field">남은 시간</p>
-                  <p className="status-bar-field" style={{ textAlign: "right" }}>{active_raid.remaining_time}</p>
+              <div className="space-y-3 mb-6">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-700 font-medium">HP</span>
+                  <span className="text-black font-semibold">
+                    {raidSummary.current_boss_hp.toLocaleString()} / {raidSummary.total_boss_hp.toLocaleString()}
+                  </span>
                 </div>
-                <div className="status-bar">
-                  <p className="status-bar-field">참여자</p>
-                  <p className="status-bar-field" style={{ textAlign: "right" }}>{active_raid.participants}명</p>
+                <Progress
+                  value={(raidSummary.current_boss_hp / raidSummary.total_boss_hp) * 100}
+                  className="h-6 bg-gray-200"
+                  style={{
+                    '--progress-background': '#000000',
+                    '--progress-foreground': '#333333'
+                  } as React.CSSProperties}
+                />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="text-center p-4 bg-gray-100 rounded-lg border-2 border-gray-300">
+                  <span className="text-sm text-gray-600 font-medium">남은 시간</span>
+                  <p className="text-lg text-black font-bold mt-1">
+                    {raidSummary.remaining_seconds > 0
+                      ? `${Math.floor(raidSummary.remaining_seconds / 3600)}시간`
+                      : '종료됨'}
+                  </p>
+                </div>
+                <div className="text-center p-4 bg-black rounded-lg border-2 border-black">
+                  <span className="text-sm text-white font-medium">상태</span>
+                  <p className="text-lg text-white font-bold mt-1">{raidSummary.status}</p>
                 </div>
               </div>
             </>
           ) : (
-            <div style={{ textAlign: "center", padding: "20px", color: "#666" }}>
-              현재 진행 중인 레이드가 없습니다.
+            <p className="text-sm text-gray-500">진행 중인 레이드가 없습니다.</p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* 단체 퀘스트 달성률 */}
+      <Card className="border-2 border-gray-300">
+        <CardContent className="p-4 space-y-4">
+          <h3 className="font-medium text-black">현재 단체 퀘스트 달성률</h3>
+          {groupQuestsLoading ? (
+            <p className="text-sm text-gray-500">로딩 중...</p>
+          ) : groupQuests.length === 0 ? (
+            <p className="text-sm text-gray-500">진행 중인 단체 퀘스트가 없습니다.</p>
+          ) : (
+            groupQuests.map((quest) => (
+              <div key={quest.id} className="border border-gray-200 rounded-lg p-4 space-y-3 bg-white">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="font-semibold text-black">{quest.title}</p>
+                    <p className="text-xs text-gray-600 mt-0.5">{quest.reward}</p>
+                  </div>
+                  <span className="text-xs text-gray-500">{quest.completed}/{quest.total}명</span>
+                </div>
+                <Progress
+                  value={(quest.completed / quest.total) * 100}
+                  className="h-2"
+                />
+                {quest.incomplete.length > 0 && (
+                  <div className="text-xs text-gray-500">
+                    미완료 학생: {quest.incomplete.join(', ')}
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+        </CardContent>
+      </Card>
+
+      {/* 내 현재 상태 */}
+      <Card className="border-2 border-gray-300">
+        <CardContent className="p-4">
+          <h3 className="font-medium text-black mb-4">내 현재 상태</h3>
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div className="text-center p-3 border-2 border-gray-300 rounded">
+              <p className="text-sm text-gray-600">코랄</p>
+              <p className="text-xl font-medium text-black">{currentUser.coral}</p>
+            </div>
+            <div className="text-center p-3 border-2 border-gray-300 rounded">
+              <p className="text-sm text-gray-600">탐사데이터</p>
+              <p className="text-xl font-medium text-black">{currentUser.research_data}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 최근 활동 로그 (맨 밑) */}
+      <Card className="border-2 border-gray-300">
+        <CardContent className="p-4 space-y-3">
+          <h3 className="font-medium text-black">최근 활동 로그</h3>
+          {activityLogsLoading ? (
+            <p className="text-sm text-gray-500">로딩 중...</p>
+          ) : activityLogs.length === 0 ? (
+            <p className="text-sm text-gray-500">활동 로그가 없습니다.</p>
+          ) : (
+            <div className="space-y-2">
+              {activityLogs.map((log) => (
+                <div key={log.id} className="flex items-center justify-between border border-gray-200 rounded-lg p-3 bg-white">
+                  <div>
+                    <p className="text-sm font-medium text-black">{log.title}</p>
+                    <p className="text-xs text-gray-600">{log.description}</p>
+                  </div>
+                  <div className="text-right text-xs">
+                    <p className="text-black font-semibold">{log.reward}</p>
+                    <p className="text-gray-500">{log.time}</p>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
-        </div>
-      </div>
-
-      {/* 3. 단체 퀘스트 윈도우 */}
-      <div className="window" style={{ width: "100%" }}>
-        <div className="title-bar">
-          <div className="title-bar-text">&nbsp;단체 퀘스트 현황</div>
-        </div>
-        <div className="window-body">
-          <p style={{ marginBottom: "10px" }}>우리 반 달성률</p>
-          <div className="space-y-4">
-            {group_quests.length > 0 ? (
-              group_quests.map((quest) => (
-                <fieldset key={quest.quest_id} style={{ padding: "10px", marginBottom: "10px" }}>
-                  <legend
-                    style={{ fontWeight: "bold", cursor: "pointer" }}
-                    onClick={() => setSelectedQuest({ id: quest.quest_id, title: quest.title })}
-                  >
-                    {quest.title} (상세보기 ↗)
-                  </legend>
-
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", marginBottom: "4px" }}>
-                    <span>{quest.description}</span>
-                    <span>{quest.completed_count}/{quest.total_count}명</span>
-                  </div>
-
-                  {/* 미니 프로그레스 바 */}
-                  <div className="progress-indicator" style={{ height: "16px", width: "100%" }}>
-                    <div
-                      className="progress-indicator-bar"
-                      style={{ width: `${quest.completion_rate}%`, backgroundColor: "#000080" }}
-                    />
-                  </div>
-
-                  {quest.incomplete_students.length > 0 && (
-                    <div style={{ marginTop: "8px", fontSize: "12px", color: "#666" }}>
-                      <span style={{ color: "red" }}>미완료:</span> {quest.incomplete_students.join(", ")}
-                    </div>
-                  )}
-                </fieldset>
-              ))
-            ) : (
-              <p style={{ textAlign: "center", color: "#666" }}>진행 중인 단체 퀘스트가 없습니다.</p>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* 4. 내 정보 및 로그 윈도우 */}
-      <div className="window" style={{ width: "100%" }}>
-        <div className="title-bar">
-          <div className="title-bar-text">&nbsp;내 정보</div>
-        </div>
-        <div className="window-body">
-
-          {/* 자산 현황 */}
-          <div style={{ display: "flex", gap: "10px", marginBottom: "15px" }}>
-            <div className="sunken-panel" style={{ flex: 1, padding: "10px", textAlign: "center", background: "var(--color-white)" }}>
-              <p style={{ fontSize: "12px", color: "#666", margin: 0 }}>코랄</p>
-              <p style={{ fontSize: "18px", fontWeight: "bold", margin: "4px 0 0 0" }}>{currentUser.coral}</p>
-            </div>
-            <div className="sunken-panel" style={{ flex: 1, padding: "10px", textAlign: "center", background: "var(--color-white)" }}>
-              <p style={{ fontSize: "12px", color: "#666", margin: 0 }}>탐사데이터</p>
-              <p style={{ fontSize: "18px", fontWeight: "bold", margin: "4px 0 0 0" }}>{currentUser.research_data}</p>
-            </div>
-          </div>
-
-          {/* 활동 로그 (스크롤 가능한 영역) */}
-          <fieldset>
-            <legend>시스템 로그</legend>
-            <div className="sunken-panel" style={{ height: "150px", overflowY: "scroll", padding: "6px", background: "var(--color-white)" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <tbody>
-                  {recent_activities.length > 0 ? (
-                    recent_activities.map((log) => (
-                      <tr key={log.log_id} style={{ borderBottom: "1px solid #eee" }}>
-                        <td style={{ padding: "4px", verticalAlign: "top", width: "30px", textAlign: "center" }}>
-                          {log.icon === 'C' ? '💎' : log.icon === 'E' ? '⚡' : '📜'}
-                        </td>
-                        <td style={{ padding: "4px" }}>
-                          <div style={{ fontWeight: "bold", fontSize: "12px" }}>{log.title}</div>
-                          <div style={{ fontSize: "11px", color: "#666" }}>{log.description}</div>
-                        </td>
-                        <td style={{ padding: "4px", textAlign: "right", whiteSpace: "nowrap" }}>
-                          {log.reward && <div style={{ color: "blue", fontSize: "12px" }}>{log.reward}</div>}
-                          <div style={{ fontSize: "10px", color: "#888" }}>{log.time_ago}</div>
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={3} style={{ padding: "10px", textAlign: "center", color: "#666" }}>
-                        최근 활동 내역이 없습니다.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </fieldset>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

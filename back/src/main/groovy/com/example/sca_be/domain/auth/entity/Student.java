@@ -40,9 +40,9 @@ public class Student {
     @Column(name = "research_data", nullable = false)
     private Integer researchData;
 
-    @ColumnDefault("1.0")
-    @Column(name = "correction_factor", nullable = false)
-    private Float correctionFactor; // 보정계수
+    @ColumnDefault("0")
+    @Column(nullable = false)
+    private Float grade; // 학생 성적
 
     @Builder
     public Student(Member member, Classes classes) {

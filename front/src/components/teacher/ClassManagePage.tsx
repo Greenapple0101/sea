@@ -494,7 +494,7 @@ export function ClassManagePage() {
               ) : (
                 <div className="text-center py-8 text-gray-600">
                   <p>진행 중인 레이드가 없습니다.</p>
-                  <div className="mt-4 flex flex-col gap-3 sm:flex-row justify-center">
+                  <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:justify-center">
                     <Button 
                       variant="outline"
                       className="border-2 border-gray-300 rounded-lg hover:bg-gray-100"

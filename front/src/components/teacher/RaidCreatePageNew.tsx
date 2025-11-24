@@ -284,9 +284,9 @@ export function RaidCreatePageNew() {
           <h1>레이드 등록</h1>
         </div>
 
-        <div className="p-6">
+        <div className="p-6 max-w-4xl">
           {error && !infoLoading && (
-            <div className="mb-6 p-4 border-2 border-red-300 bg-red-50 rounded-lg">
+            <div className="mb-4 p-4 border-2 border-red-300 bg-red-50 rounded-lg">
               <p className="text-red-700 font-semibold">오류</p>
               <p className="text-sm text-red-600 mt-1">{error}</p>
               <Button
@@ -307,7 +307,7 @@ export function RaidCreatePageNew() {
           <div className="space-y-6">
             <div className="space-y-2">
               <Label>대상 반</Label>
-              <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
+              <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-3">
                 {classList.length > 0 ? (
                   <Select
                     value={selectedClass?.toString() || ""}
@@ -322,10 +322,10 @@ export function RaidCreatePageNew() {
                       }
                     }}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="border-2 border-gray-300 rounded-lg">
                       <SelectValue placeholder="반을 선택하세요" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="border-2 border-gray-300 rounded-lg">
                       {classList.map((cls) => (
                         <SelectItem key={cls.class_id ?? cls.classId} value={String(cls.class_id ?? cls.classId)}>
                           {cls.class_name} ({cls.student_count ?? 0}명)
@@ -354,7 +354,7 @@ export function RaidCreatePageNew() {
                 )}
               </div>
               {selectedClass && creationInfo?.class_info && (
-                <div className="px-4 py-3 border-2 border-gray-300 rounded-lg bg-gray-50 text-sm mt-3">
+                <div className="px-4 py-2 border-2 border-gray-300 rounded-lg bg-gray-50 text-sm">
                   선택된 반: {creationInfo.class_info.class_name} (학생 {creationInfo.class_info.student_count}명)
                 </div>
               )}
@@ -374,18 +374,18 @@ export function RaidCreatePageNew() {
             <div className="space-y-2">
               <Label>설명 / 스토리</Label>
               {!selectedClass ? (
-                <div className="px-6 py-12 border-2 border-gray-300 rounded-lg bg-gray-50 text-center">
+                <div className="px-4 py-8 border-2 border-gray-300 rounded-lg bg-gray-50 text-center">
                   반을 먼저 선택해주세요
                 </div>
               ) : infoLoading ? (
-                <div className="px-6 py-12 border-2 border-gray-300 rounded-lg bg-gray-50 text-center">
+                <div className="px-4 py-8 border-2 border-gray-300 rounded-lg bg-gray-50 text-center">
                   템플릿 정보를 불러오는 중...
                 </div>
               ) : creationInfo?.templates && creationInfo.templates.length > 0 ? (
                 <RadioGroup 
                   value={formState.template || creationInfo.templates[0]?.code || 'ZELUS_INDUSTRY'} 
                   onValueChange={(value) => setFormState((prev) => ({ ...prev, template: value }))}
-                  className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2"
+                  className="grid grid-cols-1 md:grid-cols-2 gap-4"
                 >
                   {creationInfo.templates.map((template) => (
                     <Card 
@@ -398,12 +398,12 @@ export function RaidCreatePageNew() {
                     >
                       <CardContent className="p-4">
                         <div className="flex items-start space-x-3">
-                          <RadioGroupItem value={template.code} id={template.code} className="mt-1 flex-shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <Label htmlFor={template.code} className="cursor-pointer font-bold text-base text-black block mb-2">
+                          <RadioGroupItem value={template.code} id={template.code} className="mt-1" />
+                          <div className="flex-1">
+                            <Label htmlFor={template.code} className="cursor-pointer font-medium text-base">
                               {template.display_name}
                             </Label>
-                            <p className="text-sm text-gray-900 font-medium">
+                            <p className="text-sm text-gray-600 mt-1">
                               {template.description}
                             </p>
                           </div>
@@ -413,7 +413,7 @@ export function RaidCreatePageNew() {
                   ))}
                 </RadioGroup>
               ) : (
-                <div className="px-6 py-12 border-2 border-red-300 rounded-lg bg-red-50 text-center text-red-800">
+                <div className="px-4 py-8 border-2 border-red-300 rounded-lg bg-red-50 text-center text-red-800">
                   템플릿 정보를 불러올 수 없습니다. "정보 새로고침" 버튼을 클릭하세요.
                 </div>
               )}
@@ -421,8 +421,8 @@ export function RaidCreatePageNew() {
 
             <div className="space-y-2">
               <Label>참여 기간</Label>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
-                <div className="space-y-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
                   <Label className="text-sm">시작</Label>
                   <Input
                     type="datetime-local"
@@ -431,7 +431,7 @@ export function RaidCreatePageNew() {
                     className="border-2 border-gray-300 rounded-lg"
                   />
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-2">
                   <Label className="text-sm">종료</Label>
                   <Input
                     type="datetime-local"
@@ -445,27 +445,25 @@ export function RaidCreatePageNew() {
 
             <div className="space-y-2">
               <Label>난이도</Label>
-              <div className="mt-2">
-                <Select value={formState.difficulty} onValueChange={(value) => {
-                  const coralReward = value === 'LOW' ? 100 : value === 'MEDIUM' ? 150 : value === 'HIGH' ? 200 : 100;
-                  setFormState((prev) => ({ 
-                    ...prev, 
-                    difficulty: value,
-                    reward_coral: coralReward
-                  }));
-                }}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="난이도를 선택하세요" />
-                  </SelectTrigger>
-                  <SelectContent position="popper" sideOffset={4}>
-                    <SelectItem value="LOW">하 난이도 (Easy)</SelectItem>
-                    <SelectItem value="MEDIUM">중 난이도 (Normal)</SelectItem>
-                    <SelectItem value="HIGH">상 난이도 (Hard)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <Select value={formState.difficulty} onValueChange={(value) => {
+                const coralReward = value === 'LOW' ? 100 : value === 'MEDIUM' ? 150 : value === 'HIGH' ? 200 : 100;
+                setFormState((prev) => ({ 
+                  ...prev, 
+                  difficulty: value,
+                  reward_coral: coralReward
+                }));
+              }}>
+                <SelectTrigger className="border-2 border-gray-300 rounded-lg w-full">
+                  <SelectValue placeholder="난이도를 선택하세요" />
+                </SelectTrigger>
+                <SelectContent className="border-2 border-gray-300 rounded-lg" position="popper" sideOffset={4}>
+                  <SelectItem value="LOW">하 난이도 (Easy)</SelectItem>
+                  <SelectItem value="MEDIUM">중 난이도 (Normal)</SelectItem>
+                  <SelectItem value="HIGH">상 난이도 (Hard)</SelectItem>
+                </SelectContent>
+              </Select>
               {formState.difficulty && (
-                <div className="text-sm text-gray-600 mt-2">
+                <div className="text-sm text-gray-600 mt-1">
                   {formState.difficulty === 'LOW' && '학생 참여율이 낮아도 클리어 가능한 난이도'}
                   {formState.difficulty === 'MEDIUM' && '평균 협력으로 클리어 가능한 표준 난이도'}
                   {formState.difficulty === 'HIGH' && '전원 참여해야 클리어 가능한 높은 난이도'}
@@ -480,7 +478,7 @@ export function RaidCreatePageNew() {
                 value={formState.boss_hp}
                 onChange={(e) => setFormState((prev) => ({ ...prev, boss_hp: e.target.value }))}
                 placeholder="보스 HP를 입력하세요"
-                className="border-2 border-gray-300 rounded-lg mt-2"
+                className="border-2 border-gray-300 rounded-lg"
               />
               {formState.difficulty && (() => {
                 const hpRanges: Record<string, { min: number; max: number }> = {
@@ -499,18 +497,18 @@ export function RaidCreatePageNew() {
             </div>
 
             <Card className="border-2 border-gray-300 rounded-lg">
-              <CardContent className="p-4 pt-4 space-y-3">
-                <h4 className="text-base font-semibold">공통 보상</h4>
+              <CardContent className="p-4 space-y-4">
+                <h4>공통 보상</h4>
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium">코랄</Label>
+                  <Label className="text-sm">코랄</Label>
                   <Select 
                     value={formState.reward_coral.toString()} 
                     onValueChange={(value) => setFormState((prev) => ({ ...prev, reward_coral: Number(value) }))}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="border-2 border-gray-300 rounded-lg">
                       <SelectValue placeholder="코랄 보상을 선택하세요" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="border-2 border-gray-300 rounded-lg">
                       <SelectItem value="100">하: 100 코랄</SelectItem>
                       <SelectItem value="150">중: 150 코랄</SelectItem>
                       <SelectItem value="200">상: 200 코랄</SelectItem>
@@ -545,12 +543,11 @@ export function RaidCreatePageNew() {
             )}
 
 
-            <div className="flex gap-3 pt-4 border-t-2 border-gray-200">
+            <div className="flex gap-3">
               <Button
                 variant="outline"
-                className="flex-1 border-2 border-gray-300 rounded-lg hover:bg-gray-100 h-12 font-semibold"
+                className="flex-1 border-2 border-gray-300 rounded-lg hover:bg-gray-100"
                 onClick={() => navigate('/teacher/dashboard')}
-                disabled={submitting}
               >
                 취소
               </Button>
@@ -558,12 +555,12 @@ export function RaidCreatePageNew() {
                 <Button
                   disabled={!canCreate || submitting}
                   onClick={handleSubmit}
-                  className="w-full bg-black hover:bg-gray-800 text-white rounded-lg h-12 font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed disabled:hover:bg-gray-400"
+                  className="w-full bg-black hover:bg-gray-800 text-white rounded-lg h-12 disabled:bg-gray-400 disabled:cursor-not-allowed"
                 >
                   {submitting ? '등록 중...' : '레이드 등록'}
                 </Button>
                 {!canCreate && !submitting && (
-                  <p className="text-xs text-gray-500 text-center mt-1">
+                  <p className="text-xs text-gray-500 text-center">
                     {!selectedClass 
                       ? '반 정보를 불러오는 중...' 
                       : !creationInfo 

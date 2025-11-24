@@ -5,14 +5,14 @@ spring:
       path: /h2-console
 
   datasource:
-    url: jdbc:h2:mem:testdb
+    url: jdbc:h2:mem:testdb;MODE=MYSQL;DATABASE_TO_UPPER=false
     driver-class-name: org.h2.Driver
     username: sa
     password:
 
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: none
     show-sql: true
     properties:
       hibernate:
@@ -24,6 +24,8 @@ spring:
     init:
       mode: always
       encoding: UTF-8
+      schema-locations: classpath:schema-h2.sql
+      data-locations: classpath:data.sql
 
 logging:
   level:

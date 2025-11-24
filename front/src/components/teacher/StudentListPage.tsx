@@ -5,14 +5,11 @@ import { get } from "../../utils/api";
 import { useAuth } from "../../contexts/AppContext";
 
 interface StudentInfo {
-  studentId: number;  // 백엔드 응답은 camelCase
-  student_id?: number;  // 호환성을 위해 optional로 유지
+  student_id: number;
   name: string;
-  pendingQuests: number;  // 백엔드 응답은 camelCase
-  pending_quests?: number;  // 호환성을 위해 optional로 유지
+  pending_quests: number;
   coral: number;
-  researchData: number;  // 백엔드 응답은 camelCase
-  research_data?: number;  // 호환성을 위해 optional로 유지
+  research_data: number;
 }
 
 interface StudentListResponse {
@@ -102,56 +99,20 @@ export function StudentListPage() {
       setError(null);
       try {
         console.log('학생 목록 조회 시작, 반 ID:', classId, '타입:', typeof classId);
+        const response = await get(`/api/v1/classes/${classId}/students`);
+        const json = await response.json();
+        console.log('학생 목록 응답:', json);
+        console.log('응답 데이터:', json.data);
+        console.log('학생 수:', json.data?.student_count, '학생 목록:', json.data?.students);
         
-        // 학생 목록과 승인 대기 퀘스트를 병렬로 가져오기
-        const [studentsResponse, pendingQuestsResponse] = await Promise.all([
-          get(`/api/v1/classes/${classId}/students`),
-          get('/api/v1/quests/personal/pending').catch(() => null) // 실패해도 계속 진행
-        ]);
-        
-        const studentsJson = await studentsResponse.json();
-        console.log('학생 목록 응답:', studentsJson);
-        console.log('응답 데이터:', studentsJson.data);
-        console.log('학생 수:', studentsJson.data?.student_count, '학생 목록:', studentsJson.data?.students);
-        
-        if (studentsResponse.ok) {
-          const data: StudentListResponse = studentsJson.data;
+        if (response.ok) {
+          const data: StudentListResponse = json.data;
           console.log('학생 목록 데이터:', {
             classId: data.class_id,
             className: data.class_name,
             studentCount: data.student_count,
             studentsCount: data.students?.length ?? 0,
             students: data.students
-          });
-          
-          // 승인 대기 퀘스트 개수 계산
-          let pendingQuestsMap: Map<number, number> = new Map();
-          if (pendingQuestsResponse && pendingQuestsResponse.ok) {
-            try {
-              const pendingJson = await pendingQuestsResponse.json();
-              if (pendingJson.data?.assignments) {
-                // 각 학생별로 승인 대기 퀘스트 개수 세기
-                pendingJson.data.assignments.forEach((quest: any) => {
-                  const studentId = quest.student_id;
-                  if (studentId) {
-                    pendingQuestsMap.set(studentId, (pendingQuestsMap.get(studentId) || 0) + 1);
-                  }
-                });
-              }
-            } catch (err) {
-              console.error('승인 대기 퀘스트 처리 실패:', err);
-            }
-          }
-          
-          // 학생 목록에 실제 승인 대기 퀘스트 개수 업데이트
-          const studentsWithPendingQuests = (data.students ?? []).map(student => {
-            const studentId = student.studentId ?? student.student_id;
-            const actualPendingQuests = pendingQuestsMap.get(studentId ?? 0) ?? 0;
-            return {
-              ...student,
-              pendingQuests: actualPendingQuests,
-              pending_quests: actualPendingQuests
-            };
           });
           
           // 요청한 classId와 응답의 classId가 일치하는지 확인
@@ -162,7 +123,7 @@ export function StudentListPage() {
             });
           }
           
-          setStudents(studentsWithPendingQuests);
+          setStudents(data.students ?? []);
           // student_count가 0이지만 students 배열에 데이터가 있으면 students.length 사용
           const actualStudentCount = data.student_count > 0 
             ? data.student_count 
@@ -173,8 +134,8 @@ export function StudentListPage() {
             studentCount: actualStudentCount
           });
         } else {
-          const errorMessage = studentsJson?.message ?? '학생 목록을 불러오지 못했습니다.';
-          console.error('학생 목록 조회 실패:', errorMessage, studentsJson);
+          const errorMessage = json?.message ?? '학생 목록을 불러오지 못했습니다.';
+          console.error('학생 목록 조회 실패:', errorMessage, json);
           setError(errorMessage);
           setStudents([]);
           setClassInfo(null);
@@ -241,25 +202,18 @@ export function StudentListPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
-              {students.map((student) => {
-                // 백엔드 응답이 camelCase이므로 둘 다 지원
-                const studentId = student.studentId ?? student.student_id ?? 0;
-                const pendingQuests = student.pendingQuests ?? student.pending_quests ?? 0;
-                const researchData = student.researchData ?? student.research_data ?? 0;
-                
-                return (
-                  <StudentListItem
-                    key={studentId}
-                    id={studentId}
-                    name={student.name}
-                    avatar={getAvatar(student.name)}
-                    pendingQuests={pendingQuests}
-                    coral={student.coral ?? 0}
-                    research_data={researchData}
-                    classId={urlClassId ? Number(urlClassId) : undefined}
-                  />
-                );
-              })}
+              {students.map((student) => (
+                <StudentListItem
+                  key={student.student_id}
+                  id={student.student_id}
+                  name={student.name}
+                  avatar={getAvatar(student.name)}
+                  pendingQuests={student.pending_quests}
+                  coral={student.coral ?? 0}
+                  research_data={student.research_data ?? 0}
+                  classId={urlClassId ? Number(urlClassId) : undefined}
+                />
+              ))}
             </div>
           )}
         </div>

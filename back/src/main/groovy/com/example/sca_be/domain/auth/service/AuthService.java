@@ -146,6 +146,12 @@ public class AuthService {
             throw new CustomException(ErrorCode.INVALID_CREDENTIALS);
         }
 
+        // 사용자가 선택한 역할 검증
+        Role requestedRole = parseRequestedRole(request.getRole());
+        if (member.getRole() != requestedRole) {
+            throw new CustomException(ErrorCode.INVALID_CREDENTIALS, "선택한 역할로 로그인할 수 없습니다.");
+        }
+
         // 토큰 생성
         String accessToken = jwtTokenProvider.createToken(member.getMemberId(), member.getUsername());
         String refreshToken = jwtTokenProvider.createRefreshToken(member.getMemberId(), member.getUsername());
@@ -190,6 +196,18 @@ public class AuthService {
                     .tokenType("Bearer")
                     .expiresIn(expiresIn)
                     .build();
+        }
+    }
+
+    private Role parseRequestedRole(String role) {
+        if (role == null || role.trim().isEmpty()) {
+            throw new CustomException(ErrorCode.INVALID_INPUT, "role 값이 필요합니다.");
+        }
+
+        try {
+            return Role.valueOf(role.trim().toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            throw new CustomException(ErrorCode.INVALID_INPUT, "role 값은 teacher 또는 student 여야 합니다.");
         }
     }
 

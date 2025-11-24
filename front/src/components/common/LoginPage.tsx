@@ -1,8 +1,12 @@
 import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
+import { Button } from "../ui/button";
 import { ArrowLeft } from "lucide-react";
-import { useAuth } from "../../contexts/AppContext";
-import { post } from "../../utils/api";
+import { useAuth, TeacherUser, StudentUser } from "../../contexts/AppContext";
+import { post, get } from "../../utils/api";
 
 type FormErrors = {
   username: string | null;
@@ -12,7 +16,7 @@ type FormErrors = {
 
 export function LoginPage() {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, updateUser } = useAuth();
   const { role } = useParams<{ role: string }>();
 
   const [formData, setFormData] = useState({
@@ -43,10 +47,7 @@ export function LoginPage() {
 
 
   //백엔드 api 호출용
-  const handleLogin = async (e?: React.FormEvent) => {
-    if (e) {
-      e.preventDefault();
-    }
+  const handleLogin = async () => {
 
     if (role !== 'teacher' && role !== 'student') {
       alert("잘못된 접근입니다.");
@@ -65,85 +66,80 @@ export function LoginPage() {
       }, { skipAuth: true });
 
 
-      const result = await response.json();
-      console.log('로그인 응답:', result);
-      
-      // 백엔드 응답의 success 필드 확인 (가장 중요!)
-      if (!result.success) {
-        const errorMessage = result.message || '아이디 또는 비밀번호가 일치하지 않습니다.';
-        console.error('로그인 실패:', errorMessage);
-        setFormErrors(prev => ({ ...prev, formGeneral: errorMessage }));
-        return;
-      }
-
-      // HTTP 상태 코드도 확인
       if (!response.ok) {
         const status = response.status;
-        const errorMessage = result.message || (status === 401 ? '아이디 또는 비밀번호가 일치하지 않습니다.' : '로그인에 실패했습니다.');
-        console.error('HTTP 에러:', status, errorMessage);
-        setFormErrors(prev => ({ ...prev, formGeneral: errorMessage }));
+        const data = await response.json();
+
+        if (status === 401) {
+          setFormErrors(prev => ({ ...prev, formGeneral: data.message || '아이디 또는 비밀번호가 일치하지 않습니다.' }));
+          return;
+        }
+        if (status === 400 && data.error_code === 'INVALID_INPUT' && data.data) {
+          setFormErrors(prev => ({ ...prev, ...data.data }));
+          return;
+        }
+        setFormErrors(prev => ({ ...prev, formGeneral: data.message || '로그인에 실패했습니다.' }));
         return;
       }
 
-      const { data } = result;
-      
-      // data가 없으면 에러
-      if (!data) {
-        console.error('로그인 응답에 data가 없습니다:', result);
-        setFormErrors(prev => ({ ...prev, formGeneral: '로그인 응답 데이터가 없습니다.' }));
-        return;
-      }
-      
-      // 필수 필드 확인
-      if (!data.access_token || !data.refresh_token) {
-        console.error('토큰이 없습니다:', data);
-        setFormErrors(prev => ({ ...prev, formGeneral: '로그인 토큰을 받지 못했습니다.' }));
-        return;
-      }
-      
-      // 사용자 정보 확인
-      if (role === 'teacher' && !data.teacher_id) {
-        console.error('선생님 정보가 없습니다:', data);
-        setFormErrors(prev => ({ ...prev, formGeneral: '선생님 정보를 받지 못했습니다.' }));
-        return;
-      }
-      if (role === 'student' && !data.student_id) {
-        console.error('학생 정보가 없습니다:', data);
-        setFormErrors(prev => ({ ...prev, formGeneral: '학생 정보를 받지 못했습니다.' }));
-        return;
-      }
+      const {data} = await response.json();
 
-      // 백엔드 응답 구조에 맞게 user 객체 생성
-      let userData: any;
-      if (role === 'teacher') {
-        userData = {
-          id: String(data.teacher_id),
-          username: data.username,
-          real_name: data.real_name,
-          nickname: data.nickname,
-          email: data.email,
-          classes: [] // 초기값, 나중에 API로 가져올 수 있음
-        };
-      } else {
-        userData = {
+      // 학생인 경우 전체 사용자 정보를 StudentUser 형식으로 변환하여 저장
+      if (role === 'student') {
+        const studentUser = {
           id: String(data.student_id),
-          username: data.username,
           real_name: data.real_name,
           nickname: data.nickname,
+          username: data.username,
           email: data.email,
-          invite_code: '',
-          coral: data.coral || 0,
-          research_data: data.research_data || 0,
-          mainFish: ''
+          invite_code: '', // 로그인 응답에 없으면 빈 문자열
+          coral: data.coral ?? 0,
+          research_data: data.research_data ?? 0,
+          mainFish: '', // 로그인 응답에 없으면 빈 문자열
         };
-      }
-
-      login(userData, role as 'teacher' | 'student', data.access_token, data.refresh_token);
-
-      if (role === 'teacher') {
-        navigate('/teacher/dashboard');
-      } else {
+        login(studentUser, role as 'teacher' | 'student', data.access_token, data.refresh_token);
         navigate('/student/dashboard');
+      } else {
+        // Teacher인 경우: 먼저 기본 정보로 로그인하고, classes를 가져와서 업데이트
+        const teacherUser = {
+          id: String(data.teacher_id),
+          real_name: data.real_name,
+          nickname: data.nickname,
+          username: data.username,
+          email: data.email,
+          classes: [] as string[], // 일단 빈 배열로 시작
+        };
+        // 먼저 localStorage에 직접 저장 (동기적으로)
+        localStorage.setItem('user', JSON.stringify(teacherUser));
+        localStorage.setItem('userType', 'teacher');
+        localStorage.setItem('accessToken', data.access_token);
+        localStorage.setItem('refreshToken', data.refresh_token);
+        
+        // 그 다음 login() 함수 호출 (React 상태 업데이트)
+        login(teacherUser, role as 'teacher' | 'student', data.access_token, data.refresh_token);
+        
+        // classes 정보 가져오기 (비동기, 실패해도 계속 진행)
+        get('/api/v1/classes')
+          .then(classesResponse => {
+            if (classesResponse.ok) {
+              return classesResponse.json();
+            }
+            return null;
+          })
+          .then(classesData => {
+            if (classesData?.data?.classes) {
+              const classIds = (classesData.data.classes || []).map((c: any) => String(c.class_id || c.classId));
+              if (classIds.length > 0) {
+                updateUser({ classes: classIds });
+              }
+            }
+          })
+          .catch(err => {
+            console.error('Failed to fetch classes:', err);
+          });
+        
+        // 즉시 대시보드로 이동 (localStorage에 이미 저장됨)
+        window.location.href = '/teacher/dashboard';
       }
 
     } catch (error) {
@@ -157,98 +153,85 @@ export function LoginPage() {
   };
 
   return (
-    <div className="retro-layout min-h-screen flex items-center justify-center p-4" style={{ backgroundImage: "var(--bg-url)" }}>
-      <div className="window" style={{ width: "100%", maxWidth: "400px" }}>
-        <div className="title-bar">
-          <div className="title-bar-text">&nbsp;{title}</div>
-          <div className="title-bar-controls">
-            <button aria-label="Minimize" />
-            <button aria-label="Maximize" />
-            <button aria-label="Close" />
-          </div>
-        </div>
-        <div className="window-body">
-          <div style={{ marginBottom: "20px", display: "flex", alignItems: "center" }}>
-            <button
-              onClick={() => navigate('/')}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                padding: "4px 8px",
-                minWidth: "auto"
-              }}
-              title="뒤로가기"
-            >
-              <ArrowLeft size={16} style={{ marginRight: "4px", color: "black" }} />
-              뒤로
-            </button>
-          </div>
-        </div>
-        <form onSubmit={handleLogin}>
-          <div className="field-row-stacked" style={{ marginBottom: "12px" }}>
-            <label htmlFor="username">아이디</label>
-            <input
-              id="username"
-              type="text"
-              placeholder="아이디를 입력하세요"
-              style={{ width: "100%" }}
-              value={formData.username}
-              onChange={handleChange}
-            />
-            {formErrors.username && (
-              <p style={{ color: "red", marginTop: "4px", margin: 0 }}>{formErrors.username}</p>
-            )}
-          </div>
-          <div className="field-row-stacked" style={{ marginBottom: "20px" }}>
-            <label htmlFor="password">비밀번호</label>
-            <input
-              id="password"
-              type="password"
-              placeholder="비밀번호를 입력하세요"
-              style={{ width: "100%" }}
-              value={formData.password}
-              onChange={handleChange}
-            />
-            {formErrors.password && (
-              <p style={{ color: "red", marginTop: "4px", margin: 0 }}>{formErrors.password}</p>
-            )}
-          </div>
-          {/* 공통 에러 메시지 */}
-          {formErrors.formGeneral && (
-            <p style={{ color: "red", textAlign: "center", marginBottom: "12px" }}>
-              {formErrors.formGeneral}
-            </p>
-          )}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "10px" }}>
-            <button
-              type="submit"
-              disabled={isLoading}
-              style={{
-                minWidth: "100px",
-                fontWeight: "bold",
-                padding: "6px 12px"
-              }}
-            >
-              {isLoading ? '접속 중...' : '확인'}
-            </button>
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-md relative px-4">
+        {/* 뒤로가기 버튼 - 카드 밖 오른쪽 상단 구석 */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="absolute -top-12 right-4 border border-gray-300 hover:bg-gray-100 w-8 h-8"
+          onClick={() => navigate('/')}
+        >
+          <ArrowLeft className="w-4 h-4" />
+        </Button>
 
-            <button
-              onClick={() => navigate('/signup')}
-              style={{
-                minWidth: "auto",
-                padding: "0",
-                border: "none",
-                background: "none",
-                boxShadow: "none",
-                color: "blue",
-                textDecoration: "underline",
-                cursor: "pointer"
-              }}
+        {/* 로그인 카드 */}
+        <Card className="border-2 border-gray-300 shadow-lg">
+          <CardHeader className="pb-4 border-b-2 border-gray-300">
+            <h1 className="text-xl font-semibold text-black text-left whitespace-nowrap" style={{ writingMode: 'horizontal-tb' }}>
+              {title}
+            </h1>
+          </CardHeader>
+
+          <CardContent className="p-8 space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="username" className="text-sm font-medium text-gray-700">
+                아이디
+              </Label>
+              <Input
+                id="username"
+                placeholder="아이디를 입력하세요"
+                className="border-2 border-gray-300 rounded-lg h-11 focus:border-black focus:ring-0"
+                value={formData.username}
+                onChange={handleChange}
+              />
+              {formErrors.username && (
+                <p className="text-xs text-red-600 mt-1">{formErrors.username}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="password" className="text-sm font-medium text-gray-700">
+                비밀번호
+              </Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="비밀번호를 입력하세요"
+                className="border-2 border-gray-300 rounded-lg h-11 focus:border-black focus:ring-0"
+                value={formData.password}
+                onChange={handleChange}
+              />
+              {formErrors.password && (
+                <p className="text-xs text-red-600 mt-1">{formErrors.password}</p>
+              )}
+            </div>
+
+            {/* API 에러 메시지를 사용자에게 표시 */}
+            {formErrors.formGeneral && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-600 text-center">{formErrors.formGeneral}</p>
+              </div>
+            )}
+
+            <Button
+              className="w-full bg-black hover:bg-gray-800 text-white rounded-lg h-12 text-base font-medium mt-2"
+              onClick={handleLogin}
+              disabled={isLoading}
             >
-              회원가입하기
-            </button>
-          </div>
-        </form>
+              {isLoading ? '로그인 중...' : '로그인'}
+            </Button>
+
+            <div className="text-center pt-2">
+              <Link
+                to="/signup"
+                className="text-sm text-gray-600 hover:text-black underline transition-colors"
+              >
+                회원가입하기
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
