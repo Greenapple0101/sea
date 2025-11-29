@@ -1,18 +1,28 @@
+# Local development overrides (ignored by Git)
+# Fill these placeholders with your real secrets for local testing.
+
 spring:
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
+  config:
+    activate:
+      on-profile: dev
+
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY:}
+      chat:
+        options:
+          model: gpt-4o-mini
+          temperature: 0.3
 
   datasource:
-    url: jdbc:h2:mem:testdb
+    url: jdbc:h2:mem:testdb;MODE=MYSQL;DATABASE_TO_UPPER=false
     driver-class-name: org.h2.Driver
     username: sa
     password:
 
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: none
     show-sql: true
     properties:
       hibernate:
@@ -24,16 +34,30 @@ spring:
     init:
       mode: always
       encoding: UTF-8
+      schema-locations: classpath:schema-h2.sql
+      data-locations: classpath:data.sql
 
 logging:
   level:
     org.hibernate.SQL: debug
     org.hibernate.orm.jdbc.bind: trace
+    com.example.sca_be.domain.ai: debug
 
 jwt:
-  secret: your-secret-key-must-be-at-least-256-bits-long-for-HS256-algorithm-security
-  expiration: 900000 # 15분 (milliseconds)
-  refresh-expiration: 604800000 # 7일 (milliseconds)
+  secret: ${JWT_SECRET:your-secret-key-must-be-at-least-256-bits-long}
+  expiration: 900000
+  refresh-expiration: 604800000
 
 file:
-  upload-dir: uploads # 파일 업로드 디렉토리
+  upload-dir: uploads
+
+cloud:
+  aws:
+    credentials:
+      access-key: ${AWS_ACCESS_KEY:}
+      secret-key: ${AWS_SECRET_KEY:}
+    s3:
+      bucket: ${AWS_S3_BUCKET:}
+    region:
+      static: ap-northeast-2
+
